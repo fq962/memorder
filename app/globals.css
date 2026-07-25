@@ -37,6 +37,11 @@
 
   --animate-row-in: row-in 0.6s ease-out both;
   --animate-row-stretch: row-stretch 0.4s ease-in-out;
+  /* La duración real se pasa por estilo en línea: depende de la ronda. */
+  --animate-time-bar: time-bar 5s linear forwards;
+  --animate-score-pop: score-pop 0.55s ease-out;
+  --animate-points-fly: points-fly 0.95s ease-out forwards;
+  --animate-row-flash: row-flash 0.6s ease-out;
 }
 
 /* Animan las propiedades translate/scale, no transform, para no pisar el skew de los renglones. */
@@ -53,23 +58,72 @@
   }
 }
 
+/* Golpe de escala con destello para el marcador al sumar puntos. */
+@keyframes score-pop {
+  0% {
+    scale: 1;
+  }
+  35% {
+    scale: 1.45;
+    filter: drop-shadow(0 0 18px rgb(255 190 110 / 0.95));
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+/* Los puntos ganados salen disparados hacia arriba. */
+@keyframes points-fly {
+  0% {
+    opacity: 0;
+    scale: 0.4;
+    translate: 0 30px;
+  }
+  25% {
+    opacity: 1;
+    scale: 1.6;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.1;
+    translate: 0 -110px;
+  }
+}
+
+@keyframes row-flash {
+  from {
+    filter: brightness(2.6) saturate(1.5);
+  }
+  to {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes time-bar {
+  from {
+    scale: 1 1;
+  }
+  to {
+    scale: 0 1;
+  }
+}
+
 /* Texto cromado: el degradado se recorta sobre las letras y se desplaza en bucle. */
 @utility text-chrome {
   background-image: linear-gradient(
     100deg,
-    #2b1055 0%,
-    #a855f7 9%,
-    #ffffff 17%,
-    #f97316 26%,
-    #7c2d12 35%,
-    #fbbf24 44%,
-    #ffffff 52%,
-    #22d3ee 61%,
-    #4c1d95 70%,
-    #ec4899 79%,
-    #ffffff 87%,
-    #6d28d9 94%,
-    #2b1055 100%
+    #a855f7 0%,
+    #ffffff 10%,
+    #f97316 20%,
+    #fbbf24 30%,
+    #ffffff 42%,
+    #22d3ee 52%,
+    #818cf8 62%,
+    #ec4899 72%,
+    #ffffff 84%,
+    #c084fc 92%,
+    #a855f7 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;

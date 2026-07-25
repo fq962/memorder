@@ -43,43 +43,52 @@ const STAGGER = [
   "[animation-delay:840ms]",
 ];
 
-// Un tono por puesto; a partir del 20 se mantiene el más claro.
+import Link from "next/link";
+
+// Un tono por puesto; a partir del 20 se mantiene el último.
+// La opacidad baja al descender para que los renglones se fundan con el fondo.
 const SHADES = [
-  "bg-accent-1",
-  "bg-accent-2",
-  "bg-accent-3",
-  "bg-accent-4",
-  "bg-accent-5",
-  "bg-accent-6",
-  "bg-accent-7",
-  "bg-accent-8",
-  "bg-accent-9",
-  "bg-accent-10",
-  "bg-accent-11",
-  "bg-accent-12",
-  "bg-accent-13",
-  "bg-accent-14",
-  "bg-accent-15",
-  "bg-accent-16",
-  "bg-accent-17",
-  "bg-accent-18",
-  "bg-accent-19",
-  "bg-accent-20",
+  "bg-accent-1/55",
+  "bg-accent-2/53",
+  "bg-accent-3/51",
+  "bg-accent-4/49",
+  "bg-accent-5/47",
+  "bg-accent-6/46",
+  "bg-accent-7/44",
+  "bg-accent-8/42",
+  "bg-accent-9/40",
+  "bg-accent-10/38",
+  "bg-accent-11/36",
+  "bg-accent-12/34",
+  "bg-accent-13/32",
+  "bg-accent-14/31",
+  "bg-accent-15/29",
+  "bg-accent-16/27",
+  "bg-accent-17/25",
+  "bg-accent-18/23",
+  "bg-accent-19/22",
+  "bg-accent-20/20",
 ];
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-16 px-8 py-16 md:flex-row md:items-center md:gap-12">
+    <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-16 px-8 py-16 md:flex-row md:items-center md:gap-12">
+      {/* Halo cálido detrás de la tabla para que no choque con el fondo. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 right-0 -z-10 h-[130%] w-[75%] -translate-y-1/2 bg-[radial-gradient(closest-side,var(--color-accent-1),transparent)] opacity-25 blur-3xl"
+      />
+
       <section className="flex items-center justify-center md:w-1/3">
-        <button
-          type="button"
+        <Link
+          href="/play"
           className="font-display text-7xl tracking-wide text-white transition-transform hover:scale-105 sm:text-8xl md:text-9xl"
         >
           PLAY
-        </button>
+        </Link>
       </section>
 
-      <section className="px-4 md:max-h-[70vh] md:flex-1 md:overflow-y-auto">
+      <section className="px-4 [mask-image:linear-gradient(to_bottom,transparent,#000_3%,#000_82%,transparent)] md:max-h-[70vh] md:flex-1 md:overflow-y-auto">
         <ol className="flex flex-col gap-3">
           {ranking.map(({ rank, user, score }) => {
             // El podio agranda también sus letras al pasar el ratón.
@@ -99,7 +108,7 @@ export default function Home() {
                   SHADES[Math.min(SHADES.length - 1, rank - 1)]
                 }`}
               >
-                <div className="flex skew-x-12 items-center gap-6 px-10 py-3 text-accent-foreground">
+                <div className="flex skew-x-12 items-center gap-6 px-10 py-3 text-orange-50">
                   <span
                     className={`font-display w-16 shrink-0 ${zoom} ${
                       rank === 1 ? "text-chrome text-4xl" : "text-3xl"
