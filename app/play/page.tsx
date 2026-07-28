@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiRain from "../components/EmojiRain";
+import MemorizeTimer from "../components/MemorizeTimer";
+import cerebri from "../images/cerebri.png";
+import calaca from "../images/calaca.png";
+import {
+  playSound,
+  preloadSounds,
+  unlockAudio,
+} from "../lib/sounds";
 import {
   buildRound,
   move,
@@ -16,6 +25,12 @@ type Phase = "idle" | "showing" | "arrange" | "checking" | "gameover";
 
 /** Milisegundos entre la comprobación de una palabra y la siguiente. */
 const CHECK_STEP_MS = 500;
+
+/** Tiempo que las palabras quedan visibles tras aparecer la última. */
+const SHOW_HOLD_MS = 3000;
+
+/** Tiempo para ORDENAR las palabras, con cuenta atrás de milisegundos. */
+const ARRANGE_MS = 30000;
 
 /** Inclinación pseudo-aleatoria estable por índice, para el desorden de las cartas. */
 function tiltFor(i: number): string {
@@ -72,7 +87,6 @@ export default function PlayPage() {
   const [score, setScore] = useState(0);
   const [wordsCorrect, setWordsCorrect] = useState(0);
   const [current, setCurrent] = useState<Round | null>(null);
-  const [wordIndex, setWordIndex] = useState(0);
   const [board, setBoard] = useState<string[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
@@ -87,12 +101,19 @@ export default function PlayPage() {
   // El índice arrastrado se guarda en una ref: el estado sirve solo para el
   // resaltado y podría no estar aplicado todavía cuando llega el drop.
   const dragRef = useRef<number | null>(null);
+  // Ronda actual en una ref para que el callback del cronómetro sea estable.
+  const currentRef = useRef<Round | null>(null);
+
+  // Precarga (descarga + decodifica) todos los sonidos al abrir el juego.
+  useEffect(() => {
+    void preloadSounds();
+  }, []);
 
   const startRound = useCallback((next: number) => {
     const generated = buildRound(next, recentRef.current.flat());
     recentRef.current = [generated.words, ...recentRef.current].slice(0, 5);
+    currentRef.current = generated;
     setCurrent(generated);
-    setWordIndex(0);
     setSelected(null);
     setDragIndex(null);
     setCheckIndex(0);
@@ -100,21 +121,26 @@ export default function PlayPage() {
     setPhase("showing");
   }, []);
 
-  // Muestra las palabras una a una y al terminar pasa a la fase de ordenar.
+  // Fase de memorización: las palabras aparecen repartidas y se mantienen
+  // SHOW_HOLD_MS después de que salga la última; luego se baraja y a ordenar.
   useEffect(() => {
     if (phase !== "showing" || !current) return;
-
-    const isLast = wordIndex >= current.words.length - 1;
+    const revealMs = current.words.length * 70 + 500;
     const timer = setTimeout(() => {
-      if (isLast) {
-        setBoard(shuffleDistinct(current.words));
-        setPhase("arrange");
-      } else {
-        setWordIndex((i) => i + 1);
-      }
-    }, current.perWordMs);
+      setBoard(shuffleDistinct(current.words));
+      setPhase("arrange");
+    }, revealMs + SHOW_HOLD_MS);
     return () => clearTimeout(timer);
-  }, [phase, current, wordIndex]);
+  }, [phase, current]);
+
+  // Cuenta atrás de ordenar agotada: comprueba lo que haya (auto-submit).
+  // Estable (setters) para no reiniciar el cronómetro en cada render.
+  const handleTimeUp = useCallback(() => {
+    setSelected(null);
+    setCheckIndex(0);
+    setWrongIndex(null);
+    setPhase("checking");
+  }, []);
 
   function startDrag(index: number) {
     dragRef.current = index;
@@ -154,6 +180,8 @@ export default function PlayPage() {
 
     const timer = setTimeout(() => {
       if (checkIndex >= board.length) {
+        // Todas correctas: suena la ronda ganada y salta a la siguiente.
+        playSound("correct-round");
         setScore((s) => s + perfectBonus(current.words, round));
         const next = round + 1;
         setRound(next);
@@ -162,12 +190,15 @@ export default function PlayPage() {
       }
 
       if (board[checkIndex] === current.words[checkIndex]) {
+        // Palabra correcta: efecto escalera (tono sube con cada acierto).
+        playSound("correct-word", { rate: 1 + checkIndex * 0.08 });
         setScore((s) => s + wordPoints(board[checkIndex], round));
         setWordsCorrect((c) => c + 1);
         setCheckIndex((i) => i + 1);
       } else {
+        // Fallo: suena game over y se sacude la pantalla.
+        playSound("gameover");
         setWrongIndex(checkIndex);
-        // Sacudida al fallar.
         setShake(true);
         setTimeout(() => setShake(false), 520);
       }
@@ -183,6 +214,8 @@ export default function PlayPage() {
   }
 
   function restart() {
+    unlockAudio();
+    playSound("game-start");
     recentRef.current = [];
     setScore(0);
     setWordsCorrect(0);
@@ -218,8 +251,14 @@ export default function PlayPage() {
       </header>
 
       {phase === "idle" && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <h1 className="font-display text-chrome animate-bob text-3xl sm:text-5xl">
+        <section className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+          <Image
+            src={cerebri}
+            alt="Cerebri"
+            priority
+            className="animate-float w-44 max-w-full drop-shadow-[0_10px_25px_rgba(255,95,200,0.35)] sm:w-52"
+          />
+          <h1 className="font-display text-chrome text-3xl sm:text-5xl">
             MEMORY
             <br />
             SEQUENCE
@@ -232,7 +271,11 @@ export default function PlayPage() {
           </p>
           <button
             type="button"
-            onClick={() => startRound(1)}
+            onClick={() => {
+              unlockAudio();
+              playSound("game-start");
+              startRound(1);
+            }}
             className="group card-base bg-chip-green animate-bob text-card-ink -rotate-2 px-10 py-5 transition-transform duration-150 hover:-rotate-1 hover:scale-110 hover:brightness-110 active:scale-95"
           >
             <span className="font-display block text-2xl [text-shadow:2px_2px_0_rgba(0,0,0,0.35)]">
@@ -244,27 +287,23 @@ export default function PlayPage() {
 
       {phase === "showing" && current && (
         <section className="flex flex-1 flex-col gap-6">
-          {/* Barra de tiempo: se retrae durante toda la fase de memorización. */}
-          <div
-            aria-hidden
-            style={{ animationDuration: `${current.totalMs}ms` }}
-            className="animate-time-bar bg-chip-gold fixed inset-x-0 top-0 z-30 h-1.5 origin-left shadow-[0_0_12px_rgba(255,203,43,0.8)]"
-          />
+          {/* Solo memorización: las palabras aparecen y se quedan 3 s. Aquí
+              NO hay cuenta atrás; el cronómetro llega en la fase de ordenar. */}
+          <p className="font-display text-chip-gold animate-pulse text-center text-[10px] tracking-widest">
+            🧠 MEMORIZA EL ORDEN 👀
+          </p>
 
-          <div className="flex items-baseline justify-between">
-            <p className="font-display text-chip-gold text-[10px] tracking-widest">
-              MEMORIZA EL ORDEN 👀
-            </p>
-            <p className="font-display text-cream/50 text-xs tabular-nums">
-              {wordIndex + 1} / {current.words.length}
-            </p>
-          </div>
-
+          {/* Todas las palabras salen de golpe, repartidas como cartas. */}
           <ol className="flex flex-col gap-3">
-            {current.words.slice(0, wordIndex + 1).map((word, i) => (
+            {current.words.map((word, i) => (
               <li
                 key={word}
-                style={{ "--tilt": tiltFor(i) } as React.CSSProperties}
+                style={
+                  {
+                    "--tilt": tiltFor(i),
+                    animationDelay: `${i * 70}ms`,
+                  } as React.CSSProperties
+                }
                 className="animate-card-deal card-base bg-card-face text-card-ink"
               >
                 <div className="flex items-center gap-5 px-6 py-4">
@@ -283,7 +322,18 @@ export default function PlayPage() {
 
       {(phase === "arrange" || phase === "checking") && current && (
         <section className="flex flex-1 flex-col gap-6">
-          <p className="font-sans text-cream/70 text-center text-base">
+          {/* Cuenta atrás de 30 s para ordenar, con milisegundos. Los últimos
+              3 s se ponen gigantes detrás de las cartas. Solo mientras se
+              ordena; al comprobar se desmonta y se detiene. */}
+          {phase === "arrange" && (
+            <MemorizeTimer
+              key={round}
+              durationMs={ARRANGE_MS}
+              onDone={handleTimeUp}
+            />
+          )}
+
+          <p className="font-sans text-cream/70 pt-14 text-center text-base">
             {phase === "checking"
               ? "Comprobando el orden… 🎰"
               : "Arrástralas al orden original — o toca una y luego otra para intercambiarlas. 🃏"}
@@ -374,8 +424,12 @@ export default function PlayPage() {
       )}
 
       {phase === "gameover" && current && (
-        <section className="animate-pop-in flex flex-1 flex-col items-center justify-center gap-7 text-center">
-          <div className="text-6xl">💀</div>
+        <section className="animate-pop-in flex flex-1 flex-col items-center justify-center gap-6 text-center">
+          <Image
+            src={calaca}
+            alt="Game Over"
+            className="animate-float w-48 max-w-full drop-shadow-[0_10px_30px_rgba(255,77,94,0.4)] sm:w-56"
+          />
           <h1 className="font-display text-chrome text-4xl sm:text-5xl">
             GAME OVER
           </h1>
