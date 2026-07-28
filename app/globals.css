@@ -57,6 +57,7 @@
   --animate-shake: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-pop-in: pop-in 0.5s cubic-bezier(0.34, 1.8, 0.5, 1) both;
   --animate-bob: bob 1.4s ease-in-out infinite;
+  --animate-pulse-big: pulse-big 1s ease-in-out infinite;
 }
 
 /* =========================================================
@@ -192,6 +193,12 @@
   to { scale: 0 1; }
 }
 
+/* Latido del número gigante de la cuenta atrás final. */
+@keyframes pulse-big {
+  0%, 100% { scale: 1; opacity: 0.9; }
+  50% { scale: 1.12; opacity: 1; }
+}
+
 /* =========================================================
    Texto arcoíris cromado (títulos)
    ========================================================= */
@@ -246,6 +253,7 @@
   .animate-wiggle,
   .animate-bob,
   .animate-shake,
+  .animate-pulse-big,
   .shake-screen {
     animation: none !important;
   }

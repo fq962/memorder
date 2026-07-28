@@ -1,5 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import EmojiRain from "./components/EmojiRain";
+import cerebri from "./images/cerebri.png";
 
 const PLAYERS = [
   "haide", "lupita", "carlos", "mariana", "tono", "sofia", "beto", "camila",
@@ -48,7 +50,15 @@ export default function Home() {
       <EmojiRain />
 
       {/* ---- Panel izquierdo: título + botón PLAY ---- */}
-      <section className="flex flex-col items-center justify-center gap-8 text-center md:w-[42%]">
+      <section className="flex flex-col items-center justify-center gap-6 text-center md:w-[42%]">
+        {/* Mascota: cerebro animado, flotando. */}
+        <Image
+          src={cerebri}
+          alt="Cerebri, la mascota"
+          priority
+          className="animate-float w-56 max-w-full drop-shadow-[0_10px_25px_rgba(255,95,200,0.35)] sm:w-64"
+        />
+
         <div className="flex flex-col items-center gap-1">
           <h1 className="font-display text-chrome text-4xl leading-tight sm:text-5xl">
             MEM

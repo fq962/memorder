@@ -30,7 +30,10 @@ export default function RootLayout({
       lang="es"
       className={`${pressStart.variable} ${pixelSans.variable} h-full antialiased`}
     >
-      <body className="bg-felt text-cream relative flex min-h-full flex-col overflow-x-hidden font-sans">
+      <body
+        suppressHydrationWarning
+        className="bg-felt text-cream relative flex min-h-full flex-col overflow-x-hidden font-sans"
+      >
         {/* Vignette + felt de fondo, detrás de todo. */}
         <div aria-hidden className="bg-felt-glow pointer-events-none fixed inset-0 -z-20" />
         {/* Scanlines CRT sutiles sobre toda la pantalla. */}
