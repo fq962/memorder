@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import EmojiRain from "../components/EmojiRain";
 import {
   buildRound,
   move,
@@ -15,6 +16,12 @@ type Phase = "idle" | "showing" | "arrange" | "checking" | "gameover";
 
 /** Milisegundos entre la comprobación de una palabra y la siguiente. */
 const CHECK_STEP_MS = 500;
+
+/** Inclinación pseudo-aleatoria estable por índice, para el desorden de las cartas. */
+function tiltFor(i: number): string {
+  const seq = [-3, 2, -1.5, 3, -2.5, 1.5, -2, 2.5];
+  return `${seq[i % seq.length]}deg`;
+}
 
 /** Muestra un número subiendo poco a poco hasta su valor real. */
 function CountUp({ value }: { value: number }) {
@@ -52,7 +59,7 @@ function CountUp({ value }: { value: number }) {
   return (
     <span
       key={value}
-      className="animate-score-pop inline-block origin-center tabular-nums"
+      className="animate-score-pop text-chip-gold inline-block origin-center tabular-nums"
     >
       {shown}
     </span>
@@ -72,6 +79,8 @@ export default function PlayPage() {
   // Palabras ya comprobadas como correctas y posición del primer fallo.
   const [checkIndex, setCheckIndex] = useState(0);
   const [wrongIndex, setWrongIndex] = useState<number | null>(null);
+  // Dispara la sacudida de pantalla al fallar.
+  const [shake, setShake] = useState(false);
 
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
@@ -158,6 +167,9 @@ export default function PlayPage() {
         setCheckIndex((i) => i + 1);
       } else {
         setWrongIndex(checkIndex);
+        // Sacudida al fallar.
+        setShake(true);
+        setTimeout(() => setShake(false), 520);
       }
     }, CHECK_STEP_MS);
     return () => clearTimeout(timer);
@@ -179,42 +191,53 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-8 py-12 text-orange-50">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(closest-side,var(--color-accent-1),transparent)] opacity-20 blur-3xl"
-      />
+    <main
+      className={`relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10 ${
+        shake ? "shake-screen" : ""
+      }`}
+    >
+      <EmojiRain count={12} />
 
       <header className="flex items-center justify-between">
         <Link
           href="/"
-          className="font-display text-2xl text-orange-50/60 transition-colors hover:text-orange-50"
+          className="font-display text-cream/50 hover:text-cream text-xs transition-colors"
         >
-          memorder
+          ← memorder
         </Link>
         {phase !== "idle" && (
-          <p className="font-display flex gap-6 text-2xl">
-            <span>Ronda {round}</span>
-            <CountUp value={score} />
+          <p className="font-display flex items-center gap-5 text-sm">
+            <span className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-3 py-1.5">
+              <span className="block skew-x-6 text-[10px]">RONDA {round}</span>
+            </span>
+            <span className="text-lg">
+              <CountUp value={score} />
+            </span>
           </p>
         )}
       </header>
 
       {phase === "idle" && (
         <section className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <h1 className="font-display text-chrome text-6xl md:text-7xl">
-            Memory Sequence
+          <h1 className="font-display text-chrome animate-bob text-3xl sm:text-5xl">
+            MEMORY
+            <br />
+            SEQUENCE
           </h1>
-          <p className="max-w-md text-lg text-orange-50/70">
+          <p className="font-sans text-cream/70 max-w-md text-base">
             Memoriza el orden en el que aparecen las palabras. Después
-            reconstrúyelo arrastrándolas. Un solo error termina la partida.
+            reconstrúyelo arrastrándolas.{" "}
+            <span className="text-chip-red font-bold">Un solo error</span> termina
+            la partida. 🧠🔥
           </p>
           <button
             type="button"
             onClick={() => startRound(1)}
-            className="font-display -skew-x-12 bg-accent-1/60 px-10 py-4 text-4xl transition-transform hover:scale-105"
+            className="group card-base bg-chip-green animate-bob text-card-ink -rotate-2 px-10 py-5 transition-transform duration-150 hover:-rotate-1 hover:scale-110 hover:brightness-110 active:scale-95"
           >
-            <span className="block skew-x-12">Comenzar</span>
+            <span className="font-display block text-2xl [text-shadow:2px_2px_0_rgba(0,0,0,0.35)]">
+              ▶ COMENZAR
+            </span>
           </button>
         </section>
       )}
@@ -225,14 +248,14 @@ export default function PlayPage() {
           <div
             aria-hidden
             style={{ animationDuration: `${current.totalMs}ms` }}
-            className="animate-time-bar fixed inset-x-0 top-0 h-1 origin-left bg-accent-1/25"
+            className="animate-time-bar bg-chip-gold fixed inset-x-0 top-0 z-30 h-1.5 origin-left shadow-[0_0_12px_rgba(255,203,43,0.8)]"
           />
 
           <div className="flex items-baseline justify-between">
-            <p className="text-sm tracking-widest text-orange-50/50 uppercase">
-              Memoriza el orden
+            <p className="font-display text-chip-gold text-[10px] tracking-widest">
+              MEMORIZA EL ORDEN 👀
             </p>
-            <p className="font-display tabular-nums text-orange-50/50">
+            <p className="font-display text-cream/50 text-xs tabular-nums">
               {wordIndex + 1} / {current.words.length}
             </p>
           </div>
@@ -241,13 +264,14 @@ export default function PlayPage() {
             {current.words.slice(0, wordIndex + 1).map((word, i) => (
               <li
                 key={word}
-                className="animate-row-in -skew-x-12 bg-accent-4/45"
+                style={{ "--tilt": tiltFor(i) } as React.CSSProperties}
+                className="animate-card-deal card-base bg-card-face text-card-ink"
               >
-                <div className="flex skew-x-12 items-center gap-6 px-8 py-4">
-                  <span className="font-display w-10 shrink-0 text-2xl text-orange-50/60">
+                <div className="flex items-center gap-5 px-6 py-4">
+                  <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
                     {i + 1}
                   </span>
-                  <span className="flex-1 truncate text-xl font-bold">
+                  <span className="flex-1 truncate font-sans text-2xl font-bold">
                     {word}
                   </span>
                 </div>
@@ -259,10 +283,10 @@ export default function PlayPage() {
 
       {(phase === "arrange" || phase === "checking") && current && (
         <section className="flex flex-1 flex-col gap-6">
-          <p className="text-center text-lg text-orange-50/70">
+          <p className="font-sans text-cream/70 text-center text-base">
             {phase === "checking"
-              ? "Comprobando el orden…"
-              : "Arrastra las palabras al orden original —o toca una y luego otra para intercambiarlas."}
+              ? "Comprobando el orden… 🎰"
+              : "Arrástralas al orden original — o toca una y luego otra para intercambiarlas. 🃏"}
           </p>
 
           <div className="relative">
@@ -270,10 +294,16 @@ export default function PlayPage() {
               {board.map((word, i) => {
                 const checking = phase === "checking";
                 const justScored = checking && i === checkIndex - 1;
-                let tone = "bg-accent-4/45";
-                if (checking && i < checkIndex) tone = "bg-emerald-500/45";
-                else if (checking && i === wrongIndex) tone = "bg-red-500/55";
-                else if (!checking && selected === i) tone = "bg-accent-1/70";
+                let tone = "bg-card-face";
+                let ink = "text-card-ink";
+                if (checking && i < checkIndex) {
+                  tone = "bg-chip-green";
+                } else if (checking && i === wrongIndex) {
+                  tone = "bg-chip-red";
+                  ink = "text-cream";
+                } else if (!checking && selected === i) {
+                  tone = "bg-chip-gold";
+                }
 
                 return (
                   <li
@@ -284,25 +314,31 @@ export default function PlayPage() {
                     onDrop={() => handleDrop(i)}
                     onDragEnd={endDrag}
                     onClick={() => !checking && handleTap(i)}
-                    className={`-skew-x-12 transition-colors duration-300 ${tone} ${
+                    style={{ "--tilt": tiltFor(i) } as React.CSSProperties}
+                    className={`card-base transition-colors duration-300 ${tone} ${ink} ${
                       justScored ? "animate-row-flash" : ""
                     } ${
-                      checking
-                        ? "cursor-default"
-                        : "cursor-grab active:cursor-grabbing"
-                    } ${dragIndex === i ? "opacity-40" : ""}`}
+                      !checking
+                        ? "hover:-translate-y-1 hover:brightness-105 cursor-grab active:cursor-grabbing active:scale-105"
+                        : "cursor-default"
+                    } ${
+                      i === wrongIndex ? "animate-shake" : ""
+                    } ${dragIndex === i ? "scale-105 opacity-50" : ""}`}
                   >
-                    <div className="flex skew-x-12 items-center gap-6 px-8 py-4">
-                      <span className="font-display w-10 shrink-0 text-2xl text-orange-50/60">
+                    <div className="flex items-center gap-5 px-6 py-4">
+                      <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
                         {i + 1}
                       </span>
-                      <span className="flex-1 truncate text-xl font-bold">
+                      <span className="flex-1 truncate font-sans text-2xl font-bold">
                         {word}
                       </span>
                       {checking && i < checkIndex && (
-                        <span className="font-display text-xl text-emerald-100">
+                        <span className="font-display text-card-ink text-sm">
                           +{wordPoints(word, round)}
                         </span>
+                      )}
+                      {checking && i === wrongIndex && (
+                        <span className="text-2xl">💥</span>
                       )}
                     </div>
                   </li>
@@ -317,7 +353,7 @@ export default function PlayPage() {
                 aria-hidden
                 className="animate-points-fly pointer-events-none absolute inset-x-0 top-1/3 z-20 text-center"
               >
-                <span className="font-display text-chrome text-7xl md:text-8xl">
+                <span className="font-display text-chrome text-5xl md:text-6xl">
                   +{wordPoints(board[checkIndex - 1], round)}
                 </span>
               </span>
@@ -328,51 +364,63 @@ export default function PlayPage() {
             type="button"
             onClick={submit}
             disabled={phase === "checking"}
-            className="font-display -skew-x-12 self-center bg-accent-1/60 px-10 py-3 text-3xl transition-transform hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
+            className="group card-base bg-chip-gold text-card-ink -skew-x-6 self-center px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
           >
-            <span className="block skew-x-12">Submit</span>
+            <span className="font-display block skew-x-6 text-lg">
+              ¡LISTO! ✅
+            </span>
           </button>
         </section>
       )}
 
       {phase === "gameover" && current && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <h1 className="font-display text-chrome text-6xl md:text-7xl">
-            Game Over
+        <section className="animate-pop-in flex flex-1 flex-col items-center justify-center gap-7 text-center">
+          <div className="text-6xl">💀</div>
+          <h1 className="font-display text-chrome text-4xl sm:text-5xl">
+            GAME OVER
           </h1>
 
-          <dl className="flex flex-col gap-2 text-xl">
+          <dl className="card-base bg-card-face text-card-ink flex w-full max-w-sm flex-col gap-3 px-8 py-6 font-sans text-base">
             <div className="flex justify-between gap-10">
-              <dt className="text-orange-50/60">Puntuación</dt>
-              <dd className="font-display tabular-nums">{score}</dd>
+              <dt className="opacity-60">Puntuación</dt>
+              <dd className="font-display text-chip-red text-sm tabular-nums">
+                {score}
+              </dd>
             </div>
             <div className="flex justify-between gap-10">
-              <dt className="text-orange-50/60">Ronda alcanzada</dt>
-              <dd className="font-display tabular-nums">{round}</dd>
+              <dt className="opacity-60">Ronda alcanzada</dt>
+              <dd className="font-display text-sm tabular-nums">{round}</dd>
             </div>
             <div className="flex justify-between gap-10">
-              <dt className="text-orange-50/60">Palabras acertadas</dt>
-              <dd className="font-display tabular-nums">{wordsCorrect}</dd>
+              <dt className="opacity-60">Palabras acertadas</dt>
+              <dd className="font-display text-sm tabular-nums">{wordsCorrect}</dd>
             </div>
           </dl>
 
-          <p className="text-orange-50/60">
-            El orden correcto era: {current.words.join(" · ")}
+          <p className="font-sans text-cream/60 max-w-md text-sm">
+            El orden correcto era:{" "}
+            <span className="text-chip-gold font-bold">
+              {current.words.join(" · ")}
+            </span>
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
             <button
               type="button"
               onClick={restart}
-              className="font-display -skew-x-12 bg-accent-1/60 px-8 py-3 text-2xl transition-transform hover:scale-105"
+              className="card-base bg-chip-green text-card-ink -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
             >
-              <span className="block skew-x-12">Jugar de nuevo</span>
+              <span className="font-display block skew-x-6 text-sm">
+                🔁 OTRA VEZ
+              </span>
             </button>
             <Link
               href="/"
-              className="font-display -skew-x-12 bg-accent-10/30 px-8 py-3 text-2xl transition-transform hover:scale-105"
+              className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
             >
-              <span className="block skew-x-12">Ver ranking</span>
+              <span className="font-display block skew-x-6 text-sm">
+                🏆 RANKING
+              </span>
             </Link>
           </div>
         </section>
