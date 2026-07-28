@@ -22,6 +22,22 @@
   --color-card-face: #fbf3dd;
   --color-card-ink: #1a1030;
 
+  /* Arcoíris cromado compartido por el título y la carta del #1. */
+  --chrome-gradient: linear-gradient(
+    100deg,
+    #b06bff 0%,
+    #ffffff 10%,
+    #ff4d5e 20%,
+    #ffcb2b 30%,
+    #ffffff 42%,
+    #3ddc84 52%,
+    #3aa0ff 62%,
+    #ff5fc8 72%,
+    #ffffff 84%,
+    #b06bff 92%,
+    #b06bff 100%
+  );
+
   /* Degradado del ranking: del oro (#1) al azul frío al descender. */
   --color-accent-1: #ffcb2b;
   --color-accent-2: #ffc23a;
@@ -95,6 +111,21 @@
     0 12px 22px -6px rgba(0, 0, 0, 0.6),
     inset 0 2px 0 0 rgba(255, 255, 255, 0.35),
     inset 0 -6px 12px -6px rgba(0, 0, 0, 0.25);
+}
+
+/* Carta cromada del #1: mismo arcoíris que el título, con brillo y halo. */
+@utility card-chrome {
+  background-image: var(--chrome-gradient);
+  background-size: 200% auto;
+  animation: chrome-shine 3s linear infinite;
+  border-color: #0b0618;
+  box-shadow:
+    0 6px 0 0 rgba(0, 0, 0, 0.55),
+    0 12px 22px -6px rgba(0, 0, 0, 0.6),
+    0 0 24px -2px rgba(255, 203, 43, 0.55),
+    0 0 46px -4px rgba(176, 107, 255, 0.5),
+    inset 0 2px 0 0 rgba(255, 255, 255, 0.75),
+    inset 0 -8px 14px -6px rgba(0, 0, 0, 0.35);
 }
 
 /* Sacudida completa de la pantalla (juice al fallar / acertar fuerte). */
@@ -203,20 +234,7 @@
    Texto arcoíris cromado (títulos)
    ========================================================= */
 @utility text-chrome {
-  background-image: linear-gradient(
-    100deg,
-    #b06bff 0%,
-    #ffffff 10%,
-    #ff4d5e 20%,
-    #ffcb2b 30%,
-    #ffffff 42%,
-    #3ddc84 52%,
-    #3aa0ff 62%,
-    #ff5fc8 72%,
-    #ffffff 84%,
-    #b06bff 92%,
-    #b06bff 100%
-  );
+  background-image: var(--chrome-gradient);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -241,6 +259,7 @@
    ========================================================= */
 @media (prefers-reduced-motion: reduce) {
   .text-chrome,
+  .card-chrome,
   .animate-float,
   .animate-wiggle,
   .animate-bob,
