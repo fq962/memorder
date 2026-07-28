@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import EmojiRain from "../components/EmojiRain";
 import MemorizeTimer from "../components/MemorizeTimer";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
@@ -229,8 +228,6 @@ export default function PlayPage() {
         shake ? "shake-screen" : ""
       }`}
     >
-      <EmojiRain count={12} />
-
       <header className="flex items-center justify-between">
         <Link
           href="/"

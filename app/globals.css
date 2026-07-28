@@ -236,14 +236,6 @@
     0 0 18px rgba(176, 107, 255, 0.35);
 }
 
-/* Partículas flotantes de fondo (emoji brainrot). */
-@keyframes drift {
-  0% { transform: translateY(20px) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.5; }
-  100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
-}
-
 /* =========================================================
    Accesibilidad: respeta reduce-motion
    ========================================================= */

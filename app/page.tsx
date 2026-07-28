@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import EmojiRain from "./components/EmojiRain";
 import cerebri from "./images/cerebri.png";
 
 const PLAYERS = [
@@ -47,8 +46,6 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 export default function Home() {
   return (
     <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 py-14 md:flex-row md:items-center md:gap-10">
-      <EmojiRain />
-
       {/* ---- Panel izquierdo: título + botón PLAY ---- */}
       <section className="flex flex-col items-center justify-center gap-6 text-center md:w-[42%]">
         {/* Mascota: cerebro animado, flotando. */}
