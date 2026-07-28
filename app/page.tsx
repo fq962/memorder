@@ -58,9 +58,7 @@ export default function Home() {
 
         <div className="flex flex-col items-center gap-1">
           <h1 className="font-display text-chrome text-4xl leading-tight sm:text-5xl">
-            MEM
-            <br />
-            ORDER
+            MEMORDER
           </h1>
           <p className="font-display text-cream/50 mt-3 text-[10px] tracking-widest">
             memoriza · o llora 🧠
