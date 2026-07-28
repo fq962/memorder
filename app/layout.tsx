@@ -1,25 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Luckiest_Guy } from "next/font/google";
+import { Press_Start_2P, Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const luckiestGuy = Luckiest_Guy({
-  variable: "--font-luckiest-guy",
+// Fuente de titulares / números: pixel puro, estilo arcade.
+const pressStart = Press_Start_2P({
+  variable: "--font-pixel",
   subsets: ["latin"],
   weight: "400",
 });
 
+// Fuente de cuerpo: pixel legible para textos largos y palabras del juego.
+const pixelSans = Pixelify_Sans({
+  variable: "--font-pixel-body",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "memorder",
+  title: "MEMORDER",
+  description: "Memoriza el orden. Estilo arcade brainrot.",
 };
 
 export default function RootLayout({
@@ -29,10 +27,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${luckiestGuy.variable} h-full antialiased`}
+      lang="es"
+      className={`${pressStart.variable} ${pixelSans.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-[#151515] font-sans text-neutral-900">
+      <body className="bg-felt text-cream relative flex min-h-full flex-col overflow-x-hidden font-sans">
+        {/* Vignette + felt de fondo, detrás de todo. */}
+        <div aria-hidden className="bg-felt-glow pointer-events-none fixed inset-0 -z-20" />
+        {/* Scanlines CRT sutiles sobre toda la pantalla. */}
+        <div aria-hidden className="scanlines pointer-events-none fixed inset-0 -z-10" />
         {children}
       </body>
     </html>
