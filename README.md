@@ -131,5 +131,6 @@ Abre [http://localhost:3000](http://localhost:3000).
 
 ## Creadores
 
-- [@crywhat7](https://github.com/crywhat7) — Milton Barrientos
 - [@fq962](https://github.com/fq962) — Fernando Quintanilla
+- [@kometha](https://github.com/kometha) — Keneth Cubas
+- [@crywhat7](https://github.com/crywhat7) — Milton Barrientos
