@@ -133,6 +133,15 @@
   animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+/* Oculta la barra de scroll nativa mientras se conserva el scroll. */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* =========================================================
    Keyframes
    ========================================================= */

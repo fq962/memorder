@@ -118,7 +118,7 @@ export default function Home() {
       </section>
 
       {/* ---- Panel derecho: ranking en cartas ---- */}
-      <section className="px-2 [mask-image:linear-gradient(to_bottom,transparent,#000_4%,#000_84%,transparent)] md:max-h-[78vh] md:flex-1 md:overflow-y-auto">
+      <section className="scrollbar-hide px-2 py-6 [mask-image:linear-gradient(to_bottom,transparent,#000_4%,#000_84%,transparent)] md:max-h-[78vh] md:flex-1 md:overflow-y-auto">
         <p className="font-display text-chip-gold mb-4 text-center text-sm tracking-widest [text-shadow:2px_2px_0_rgba(0,0,0,0.5)]">
           🏆 TOP CEREBROS 🏆
         </p>
