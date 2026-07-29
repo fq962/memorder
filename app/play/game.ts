@@ -85,26 +85,67 @@ export function buildRound(round: number, recentWords: string[]): Round {
   return { words, totalMs, perWordMs: totalMs / words.length };
 }
 
-function lengthBonus(word: string): number {
+/* =========================================================
+   Puntuación
+   ---------------------------------------------------------
+   Los puntos de cada palabra acertada salen de tres factores:
+
+     puntos = (BASE + bonus de longitud) x mult. de cantidad x mult. de rapidez
+
+   1. Longitud de la palabra: cuanto más larga, más cuesta memorizarla.
+   2. Cantidad de palabras de la ronda: ordenar 12 es mucho más difícil que 3.
+   3. Tiempo empleado en ordenar: resolver rápido multiplica; agotar el
+      cronómetro no penaliza, simplemente no da extra.
+   ========================================================= */
+
+/** Puntos base de cualquier palabra acertada, antes de bonus y multiplicadores. */
+const BASE_POINTS = 10;
+
+/** Extra por palabra larga (mismo tramo que las categorías de dificultad). */
+export function lengthBonus(word: string): number {
   if (word.length <= 5) return 0;
   if (word.length <= 8) return 5;
   if (word.length <= 11) return 10;
   return 15;
 }
 
-export function multiplierFor(round: number): number {
-  const table = [1, 1.2, 1.4, 1.6, 1.8, 2, 2.3, 2.6, 3];
-  return round <= table.length ? table[round - 1] : 3.5;
+/**
+ * Multiplicador por cantidad de palabras en la ronda: +12% por cada palabra
+ * más allá de la ronda mínima (3). Con 3 vale 1; con 15, 2.44.
+ */
+export function countMultiplier(count: number): number {
+  return 1 + Math.max(0, count - 3) * 0.12;
 }
 
-/** Puntos de una sola palabra acertada, ya con el multiplicador de la ronda. */
-export function wordPoints(word: string, round: number): number {
-  return Math.round((10 + lengthBonus(word)) * multiplierFor(round));
+/** Rapidez máxima: resolver al instante multiplica los puntos por 1.6. */
+const MAX_SPEED_MULTIPLIER = 1.6;
+
+/**
+ * Multiplicador por tiempo empleado en ordenar. Decae de forma lineal desde
+ * MAX_SPEED_MULTIPLIER (respuesta instantánea) hasta 1 al agotarse el límite.
+ */
+export function speedMultiplier(elapsedMs: number, limitMs: number): number {
+  if (limitMs <= 0) return 1;
+  const left = Math.min(1, Math.max(0, 1 - elapsedMs / limitMs));
+  return 1 + (MAX_SPEED_MULTIPLIER - 1) * left;
+}
+
+/**
+ * Puntos de una sola palabra acertada, ya con los tres factores aplicados.
+ * @param count  palabras que tenía la ronda.
+ * @param speed  multiplicador devuelto por speedMultiplier.
+ */
+export function wordPoints(word: string, count: number, speed = 1): number {
+  const base = BASE_POINTS + lengthBonus(word);
+  return Math.round(base * countMultiplier(count) * speed);
 }
 
 /** Bonus Perfect: 25% extra si toda la ronda es correcta. */
-export function perfectBonus(words: string[], round: number): number {
-  const total = words.reduce((sum, w) => sum + wordPoints(w, round), 0);
+export function perfectBonus(words: string[], speed = 1): number {
+  const total = words.reduce(
+    (sum, w) => sum + wordPoints(w, words.length, speed),
+    0,
+  );
   return Math.round(total * 0.25);
 }
 

@@ -6,16 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import MemorizeTimer from "../components/MemorizeTimer";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
-import {
-  playSound,
-  preloadSounds,
-  unlockAudio,
-} from "../lib/sounds";
+import { playSound, preloadSounds, unlockAudio } from "../lib/sounds";
 import {
   buildRound,
+  countMultiplier,
   move,
   perfectBonus,
   shuffleDistinct,
+  speedMultiplier,
   wordPoints,
   type Round,
 } from "./game";
@@ -37,14 +35,32 @@ function tiltFor(i: number): string {
   return `${seq[i % seq.length]}deg`;
 }
 
-/** Muestra un número subiendo poco a poco hasta su valor real. */
+/** Aciertos seguidos a partir de los cuales el marcador ya no crece más. */
+const MAX_STREAK_GROWTH = 8;
+
+/** Milisegundos sin sumar puntos tras los que el marcador vuelve a su tamaño. */
+const STREAK_COOLDOWN_MS = 1100;
+
+/**
+ * Muestra un número subiendo poco a poco hasta su valor real.
+ *
+ * Además acumula racha: cada subida seguida agranda el marcador un poco más
+ * (hasta MAX_STREAK_GROWTH aciertos) y le sube el brillo, de modo que la
+ * cadena de palabras acertadas se siente como un crescendo. Cuando pasa
+ * STREAK_COOLDOWN_MS sin sumar, vuelve suavemente a su tamaño normal.
+ */
 function CountUp({ value }: { value: number }) {
   const [shown, setShown] = useState(value);
   const shownRef = useRef(value);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     const from = shownRef.current;
     if (from === value) return;
+
+    setStreak((s) => Math.min(MAX_STREAK_GROWTH, s + 1));
+    // Se reinicia en cada subida: la racha solo decae si el marcador se para.
+    const cooldown = setTimeout(() => setStreak(0), STREAK_COOLDOWN_MS);
 
     const start = performance.now();
     let raf = 0;
@@ -67,15 +83,31 @@ function CountUp({ value }: { value: number }) {
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(settle);
+      clearTimeout(cooldown);
     };
   }, [value]);
 
+  // El marcador crece con la racha; el origen a la derecha evita que se salga
+  // de la cabecera al agrandarse.
+  const grow = 1 + streak * 0.11;
+  const glow = streak * 0.09;
+
   return (
     <span
-      key={value}
-      className="animate-score-pop text-chip-gold inline-block origin-center tabular-nums"
+      className="inline-block origin-right transition-[scale,filter] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+      style={{
+        scale: `${grow}`,
+        filter: `drop-shadow(0 0 ${streak * 3}px rgb(255 203 43 / ${glow}))`,
+      }}
     >
-      {shown}
+      {/* El golpe por acierto va en un span aparte, con key, para que se
+          relance en cada subida sin cortar la transición de la racha. */}
+      <span
+        key={value}
+        className="animate-score-pop text-chip-gold inline-block origin-center tabular-nums"
+      >
+        {shown}
+      </span>
     </span>
   );
 }
@@ -94,6 +126,9 @@ export default function PlayPage() {
   const [wrongIndex, setWrongIndex] = useState<number | null>(null);
   // Dispara la sacudida de pantalla al fallar.
   const [shake, setShake] = useState(false);
+  // Multiplicador de rapidez de la ronda: se congela al enviar el orden para
+  // que los +N que se muestran al comprobar coincidan con lo que se suma.
+  const [speed, setSpeed] = useState(1);
 
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
@@ -102,6 +137,8 @@ export default function PlayPage() {
   const dragRef = useRef<number | null>(null);
   // Ronda actual en una ref para que el callback del cronómetro sea estable.
   const currentRef = useRef<Round | null>(null);
+  // Instante en que empezó la fase de ordenar, para medir cuánto se tarda.
+  const arrangeStartRef = useRef(0);
 
   // Precarga (descarga + decodifica) todos los sonidos al abrir el juego.
   useEffect(() => {
@@ -127,14 +164,18 @@ export default function PlayPage() {
     const revealMs = current.words.length * 70 + 500;
     const timer = setTimeout(() => {
       setBoard(shuffleDistinct(current.words));
+      arrangeStartRef.current = performance.now();
       setPhase("arrange");
     }, revealMs + SHOW_HOLD_MS);
     return () => clearTimeout(timer);
   }, [phase, current]);
 
-  // Cuenta atrás de ordenar agotada: comprueba lo que haya (auto-submit).
-  // Estable (setters) para no reiniciar el cronómetro en cada render.
-  const handleTimeUp = useCallback(() => {
+  // Cierra la fase de ordenar: congela el multiplicador de rapidez con el
+  // tiempo empleado y pasa a comprobar. Estable (solo setters y refs) para no
+  // reiniciar el cronómetro en cada render.
+  const finishArrange = useCallback(() => {
+    const elapsed = performance.now() - arrangeStartRef.current;
+    setSpeed(speedMultiplier(elapsed, ARRANGE_MS));
     setSelected(null);
     setCheckIndex(0);
     setWrongIndex(null);
@@ -181,7 +222,7 @@ export default function PlayPage() {
       if (checkIndex >= board.length) {
         // Todas correctas: suena la ronda ganada y salta a la siguiente.
         playSound("correct-round");
-        setScore((s) => s + perfectBonus(current.words, round));
+        setScore((s) => s + perfectBonus(current.words, speed));
         const next = round + 1;
         setRound(next);
         startRound(next);
@@ -191,7 +232,9 @@ export default function PlayPage() {
       if (board[checkIndex] === current.words[checkIndex]) {
         // Palabra correcta: efecto escalera (tono sube con cada acierto).
         playSound("correct-word", { rate: 1 + checkIndex * 0.08 });
-        setScore((s) => s + wordPoints(board[checkIndex], round));
+        setScore(
+          (s) => s + wordPoints(board[checkIndex], current.words.length, speed),
+        );
         setWordsCorrect((c) => c + 1);
         setCheckIndex((i) => i + 1);
       } else {
@@ -203,19 +246,13 @@ export default function PlayPage() {
       }
     }, CHECK_STEP_MS);
     return () => clearTimeout(timer);
-  }, [phase, current, board, checkIndex, wrongIndex, round, startRound]);
-
-  function submit() {
-    setSelected(null);
-    setCheckIndex(0);
-    setWrongIndex(null);
-    setPhase("checking");
-  }
+  }, [phase, current, board, checkIndex, wrongIndex, round, speed, startRound]);
 
   function restart() {
     unlockAudio();
     playSound("game-start");
     recentRef.current = [];
+    setSpeed(1);
     setScore(0);
     setWordsCorrect(0);
     setRound(1);
@@ -263,8 +300,8 @@ export default function PlayPage() {
           <p className="font-sans text-cream/70 max-w-md text-base">
             Memoriza el orden en el que aparecen las palabras. Después
             reconstrúyelo arrastrándolas.{" "}
-            <span className="text-chip-red font-bold">Un solo error</span> termina
-            la partida. 🧠🔥
+            <span className="text-chip-red font-bold">Un solo error</span>{" "}
+            termina la partida. 🧠🔥
           </p>
           <button
             type="button"
@@ -326,7 +363,7 @@ export default function PlayPage() {
             <MemorizeTimer
               key={round}
               durationMs={ARRANGE_MS}
-              onDone={handleTimeUp}
+              onDone={finishArrange}
             />
           )}
 
@@ -335,6 +372,23 @@ export default function PlayPage() {
               ? "Comprobando el orden… 🎰"
               : "Arrástralas al orden original — o toca una y luego otra para intercambiarlas. 🃏"}
           </p>
+
+          {/* De dónde salen los puntos: cantidad de palabras y rapidez. */}
+          {phase === "checking" && (
+            <p className="font-display flex flex-wrap justify-center gap-3 text-[10px]">
+              <span className="card-base bg-chip-blue/90 text-cream -skew-x-6 px-3 py-1.5">
+                <span className="block skew-x-6">
+                  🃏 {current.words.length} PALABRAS ×
+                  {countMultiplier(current.words.length).toFixed(2)}
+                </span>
+              </span>
+              <span className="card-base bg-chip-gold text-card-ink -skew-x-6 px-3 py-1.5">
+                <span className="block skew-x-6">
+                  ⚡ RAPIDEZ ×{speed.toFixed(2)}
+                </span>
+              </span>
+            </p>
+          )}
 
           <div className="relative">
             <ol className="flex flex-col gap-3">
@@ -381,7 +435,7 @@ export default function PlayPage() {
                       </span>
                       {checking && i < checkIndex && (
                         <span className="font-display text-card-ink text-sm">
-                          +{wordPoints(word, round)}
+                          +{wordPoints(word, current.words.length, speed)}
                         </span>
                       )}
                       {checking && i === wrongIndex && (
@@ -401,7 +455,12 @@ export default function PlayPage() {
                 className="animate-points-fly pointer-events-none absolute inset-x-0 top-1/3 z-20 text-center"
               >
                 <span className="font-display text-chrome text-5xl md:text-6xl">
-                  +{wordPoints(board[checkIndex - 1], round)}
+                  +
+                  {wordPoints(
+                    board[checkIndex - 1],
+                    current.words.length,
+                    speed,
+                  )}
                 </span>
               </span>
             )}
@@ -409,7 +468,7 @@ export default function PlayPage() {
 
           <button
             type="button"
-            onClick={submit}
+            onClick={finishArrange}
             disabled={phase === "checking"}
             className="group card-base bg-chip-gold text-card-ink -skew-x-6 self-center px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
           >
@@ -444,7 +503,9 @@ export default function PlayPage() {
             </div>
             <div className="flex justify-between gap-10">
               <dt className="opacity-60">Palabras acertadas</dt>
-              <dd className="font-display text-sm tabular-nums">{wordsCorrect}</dd>
+              <dd className="font-display text-sm tabular-nums">
+                {wordsCorrect}
+              </dd>
             </div>
           </dl>
 
