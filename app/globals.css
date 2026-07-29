@@ -92,58 +92,58 @@
    ========================================================= */
 :root[data-theme="hacker"] {
   --color-felt: #050b06;
-  --color-cream: #d6ffe4;
+  --color-cream: #dcefe2;
 
-  --color-chip-red: #ff3b3b;
-  --color-chip-blue: #0c93a3;
-  --color-chip-gold: #d4ff4d;
-  --color-chip-green: #39ff14;
-  --color-chip-purple: #6c4bff;
-  --color-chip-pink: #ff2e88;
+  --color-chip-red: #e88a8a;
+  --color-chip-blue: #7ab8c4;
+  --color-chip-gold: #d4e89c;
+  --color-chip-green: #8fd9a0;
+  --color-chip-purple: #a89ad4;
+  --color-chip-pink: #e8a0c0;
 
-  --color-card-face: #cdf7d8;
-  --color-card-ink: #062b0f;
+  --color-card-face: #d4eadc;
+  --color-card-ink: #0a1f12;
 
   --chrome-gradient: linear-gradient(
     100deg,
-    #6c4bff 0%,
+    #a89ad4 0%,
     #ffffff 10%,
-    #ff3b3b 20%,
-    #d4ff4d 30%,
+    #e88a8a 20%,
+    #d4e89c 30%,
     #ffffff 42%,
-    #39ff14 52%,
-    #0c93a3 62%,
-    #ff2e88 72%,
+    #8fd9a0 52%,
+    #7ab8c4 62%,
+    #e8a0c0 72%,
     #ffffff 84%,
-    #6c4bff 92%,
-    #6c4bff 100%
+    #a89ad4 92%,
+    #a89ad4 100%
   );
 
-  --color-accent-1: #39ff14;
-  --color-accent-2: #36f415;
-  --color-accent-3: #34e916;
-  --color-accent-4: #31dd17;
-  --color-accent-5: #2fd218;
-  --color-accent-6: #2cc719;
-  --color-accent-7: #2abc1a;
-  --color-accent-8: #27b11b;
-  --color-accent-9: #25a51c;
-  --color-accent-10: #229a1d;
-  --color-accent-11: #208f1d;
-  --color-accent-12: #1d841e;
-  --color-accent-13: #1b781f;
-  --color-accent-14: #186d20;
-  --color-accent-15: #166221;
-  --color-accent-16: #135722;
-  --color-accent-17: #114c23;
-  --color-accent-18: #0e4024;
-  --color-accent-19: #0c3525;
-  --color-accent-20: #092a26;
+  --color-accent-1: #8fd9a0;
+  --color-accent-2: #84cd96;
+  --color-accent-3: #79c18c;
+  --color-accent-4: #6eb582;
+  --color-accent-5: #63a978;
+  --color-accent-6: #589d6e;
+  --color-accent-7: #4d9164;
+  --color-accent-8: #42855a;
+  --color-accent-9: #3a7952;
+  --color-accent-10: #336d4a;
+  --color-accent-11: #2c6142;
+  --color-accent-12: #25553a;
+  --color-accent-13: #1f4932;
+  --color-accent-14: #183d2a;
+  --color-accent-15: #143524;
+  --color-accent-16: #102d1e;
+  --color-accent-17: #0c2518;
+  --color-accent-18: #091e13;
+  --color-accent-19: #07170f;
+  --color-accent-20: #05100b;
 
   --felt-glow:
-    radial-gradient(circle at 50% 18%, rgba(57, 255, 20, 0.16), transparent 55%),
-    radial-gradient(circle at 82% 82%, rgba(12, 147, 163, 0.16), transparent 50%),
-    radial-gradient(circle at 12% 88%, rgba(108, 75, 255, 0.12), transparent 50%),
+    radial-gradient(circle at 50% 18%, rgba(143, 217, 160, 0.18), transparent 55%),
+    radial-gradient(circle at 82% 82%, rgba(122, 184, 196, 0.16), transparent 50%),
+    radial-gradient(circle at 12% 88%, rgba(168, 154, 212, 0.12), transparent 50%),
     radial-gradient(ellipse at center, #0a1a10 0%, #050b06 55%, #010302 100%);
 }
 

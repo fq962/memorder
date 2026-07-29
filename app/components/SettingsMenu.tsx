@@ -8,6 +8,7 @@ import { LANGUAGE_OPTIONS } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
 import { playTick } from "../lib/sounds";
 import { THEME_OPTIONS } from "../lib/themes";
+import { GlobeIcon, PaletteIcon, SettingsIcon, VolumeIcon, XIcon } from "lucide-react";
 
 /**
  * Botón de engranaje fijo en la esquina + panel modal con volumen e idioma.
@@ -26,7 +27,8 @@ export default function SettingsMenu() {
         className="card-base bg-chip-red text-cream fixed top-4 right-4 z-40 -skew-x-6 px-5 py-3 transition-transform hover:scale-110 hover:brightness-110 active:scale-95"
       >
         <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
-          <Image src={ICONS.settings} alt="" width={28} height={27} />
+          {/* <Image src={ICONS.settings} alt="" width={28} height={27} /> */}
+          <SettingsIcon className="w-6 h-6 text-white" />
           {t("settings.open")}
         </span>
       </button>
@@ -55,18 +57,17 @@ export default function SettingsMenu() {
                 aria-label={t("settings.close")}
                 className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full text-lg opacity-60 transition-opacity hover:opacity-100"
               >
-                ✕
+                <XIcon className="size-4 text-card-ink/60" />
               </button>
 
               <h2 className="font-display flex items-center justify-center gap-2 text-center text-sm tracking-widest">
-                <Image src={ICONS.settings} alt="" width={18} height={17} />
                 {t("settings.title")}
               </h2>
 
               <div className="mt-8 flex flex-col gap-3">
                 <label className="font-display flex items-center justify-between text-[10px] tracking-wide">
-                  <span>🔊 {t("settings.volume")}</span>
-                  <span className="tabular-nums">
+                  <span className="flex items-center gap-2"><VolumeIcon className="size-4 text-card-ink/60" /> {t("settings.volume")}</span>
+                  <span className="tabular-nums text-card-ink/60">
                     {Math.round(volume * 100)}%
                   </span>
                 </label>
@@ -81,8 +82,8 @@ export default function SettingsMenu() {
               </div>
 
               <div className="mt-8 flex flex-col gap-3">
-                <p className="font-display text-[10px] tracking-wide">
-                  🎨 {t("settings.theme")}
+                <p className="font-display text-[10px] tracking-wide flex items-center gap-2">
+                  <PaletteIcon className="size-4 text-card-ink/60" /> {t("settings.theme")}
                 </p>
                 <div className="flex gap-3">
                   {THEME_OPTIONS.map((option) => (
@@ -120,8 +121,8 @@ export default function SettingsMenu() {
               </div>
 
               <div className="mt-8 flex flex-col gap-3">
-                <p className="font-display text-[10px] tracking-wide">
-                  🌐 {t("settings.language")}
+                <p className="font-display text-[10px] tracking-wide flex items-center gap-2">
+                  <GlobeIcon className="size-4 text-card-ink/60" /> {t("settings.language")}
                 </p>
                 <div className="flex gap-3">
                   {LANGUAGE_OPTIONS.map((option) => (

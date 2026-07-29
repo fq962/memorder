@@ -16,7 +16,7 @@ export const THEME_OPTIONS: {
   {
     code: "hacker",
     label: "Hacker",
-    swatch: ["#050b06", "#39ff14", "#d4ff4d", "#0c93a3"],
+    swatch: ["#050b06", "#8fd9a0", "#d4e89c", "#7ab8c4"],
   },
   {
     code: "cozy",
