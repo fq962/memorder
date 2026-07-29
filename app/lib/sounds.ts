@@ -87,3 +87,28 @@ export function playSound(
   src.connect(gain).connect(audioCtx.destination);
   src.start();
 }
+
+/**
+ * Blip sintetizado (sin archivo) para feedback instantáneo de teclado:
+ * mover el cursor o soltar una palabra en su casilla.
+ */
+export function playTick(freq = 880) {
+  const audioCtx = getCtx();
+  if (!audioCtx) return;
+  if (audioCtx.state === "suspended") void audioCtx.resume();
+
+  const osc = audioCtx.createOscillator();
+  osc.type = "square";
+  osc.frequency.value = freq;
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.06;
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioCtx.currentTime + 0.08,
+  );
+
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.08);
+}

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { motion, Reorder } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MemorizeTimer from "../components/MemorizeTimer";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
-import { playSound, preloadSounds, unlockAudio } from "../lib/sounds";
+import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
 import {
   buildRound,
   countMultiplier,
@@ -119,8 +120,9 @@ export default function PlayPage() {
   const [wordsCorrect, setWordsCorrect] = useState(0);
   const [current, setCurrent] = useState<Round | null>(null);
   const [board, setBoard] = useState<string[]>([]);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  // Casilla que acaba de recibir una palabra por teclado: dispara el flash.
+  const [flashIndex, setFlashIndex] = useState<number | null>(null);
   // Palabras ya comprobadas como correctas y posición del primer fallo.
   const [checkIndex, setCheckIndex] = useState(0);
   const [wrongIndex, setWrongIndex] = useState<number | null>(null);
@@ -132,13 +134,31 @@ export default function PlayPage() {
 
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
-  // El índice arrastrado se guarda en una ref: el estado sirve solo para el
-  // resaltado y podría no estar aplicado todavía cuando llega el drop.
-  const dragRef = useRef<number | null>(null);
   // Ronda actual en una ref para que el callback del cronómetro sea estable.
   const currentRef = useRef<Round | null>(null);
   // Instante en que empezó la fase de ordenar, para medir cuánto se tarda.
   const arrangeStartRef = useRef(0);
+  // Tablero y selección actuales en refs: el listener de teclado se registra
+  // una sola vez por fase y necesita leer siempre el valor más reciente. Se
+  // sincronizan en un efecto (escribirlas en render rompe las reglas de hooks)
+  // y eso basta: el teclado siempre llega después de pintar.
+  const boardRef = useRef<string[]>(board);
+  const selectedRef = useRef<number | null>(selected);
+  useEffect(() => {
+    boardRef.current = board;
+  }, [board]);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  // El navegador dispara un click nativo tras soltar un arrastre: esta
+  // bandera evita que ese click reutilice la lógica de selección por toque.
+  const justDraggedRef = useRef(false);
+  const dragEndTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   // Precarga (descarga + decodifica) todos los sonidos al abrir el juego.
   useEffect(() => {
@@ -151,7 +171,6 @@ export default function PlayPage() {
     currentRef.current = generated;
     setCurrent(generated);
     setSelected(null);
-    setDragIndex(null);
     setCheckIndex(0);
     setWrongIndex(null);
     setPhase("showing");
@@ -182,31 +201,97 @@ export default function PlayPage() {
     setPhase("checking");
   }, []);
 
-  function startDrag(index: number) {
-    dragRef.current = index;
-    setDragIndex(index);
-  }
-
-  function endDrag() {
-    dragRef.current = null;
-    setDragIndex(null);
-  }
-
-  function handleDrop(target: number) {
-    const from = dragRef.current;
-    endDrag();
-    if (from === null || from === target) return;
-    setBoard((b) => move(b, from, target));
-  }
-
   function handleTap(index: number) {
+    // Click "fantasma" tras soltar un arrastre: se ignora y se deselecciona.
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      setSelected(null);
+      return;
+    }
     if (selected === null) {
       setSelected(index);
+      playTick(660);
       return;
     }
     if (selected !== index) setBoard((b) => move(b, selected, index));
     setSelected(null);
   }
+
+  // Pequeño destello + tick sonoro sobre una casilla: feedback de "acción
+  // completada" para los cambios que no vienen de un arrastre.
+  const flash = useCallback((index: number) => {
+    setFlashIndex(index);
+    clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => setFlashIndex(null), 320);
+  }, []);
+
+  // Coloca la palabra seleccionada en la posición `target` (0-indexed).
+  const moveSelectedTo = useCallback(
+    (target: number) => {
+      const from = selectedRef.current;
+      const len = boardRef.current.length;
+      if (from === null || target < 0 || target >= len) return;
+      if (target !== from) setBoard((b) => move(b, from, target));
+      // A diferencia del mouse, el teclado deja la palabra seleccionada en su
+      // nueva casilla para poder seguir ajustándola sin volver a elegirla.
+      setSelected(target);
+      playTick(target > from ? 990 : 740);
+      flash(target);
+    },
+    [flash],
+  );
+
+  // Control por teclado (para speedrunners): ↑/↓ mueven el cursor de
+  // selección, un dígito de la fila numérica coloca la palabra seleccionada
+  // en esa casilla, Enter comprueba y Escape suelta la selección. Se lee
+  // siempre desde refs para no tener que re-registrar el listener en cada
+  // cambio de tablero.
+  useEffect(() => {
+    if (phase !== "arrange") return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      const len = boardRef.current.length;
+      if (len === 0) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const cur = selectedRef.current;
+        const base = cur ?? (e.key === "ArrowDown" ? -1 : 0);
+        const delta = e.key === "ArrowDown" ? 1 : -1;
+        const next = (base + delta + len) % len;
+        setSelected(next);
+        playTick(e.key === "ArrowDown" ? 520 : 620);
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        finishArrange();
+        return;
+      }
+
+      if (e.key === "Escape") {
+        setSelected(null);
+        return;
+      }
+
+      if (/^[0-9]$/.test(e.key)) {
+        const n = Number(e.key);
+        const target = (n === 0 ? 10 : n) - 1;
+        if (target >= len) return;
+        e.preventDefault();
+        if (selectedRef.current === null) {
+          setSelected(target);
+          playTick(660);
+        } else {
+          moveSelectedTo(target);
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [phase, moveSelectedTo, finishArrange]);
 
   // Comprueba una palabra por paso, sumando sus puntos si es correcta.
   useEffect(() => {
@@ -285,7 +370,12 @@ export default function PlayPage() {
       </header>
 
       {phase === "idle" && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="flex flex-1 flex-col items-center justify-center gap-6 text-center"
+        >
           <Image
             src={cerebri}
             alt="Cerebri"
@@ -316,11 +406,16 @@ export default function PlayPage() {
               ▶ COMENZAR
             </span>
           </button>
-        </section>
+        </motion.section>
       )}
 
       {phase === "showing" && current && (
-        <section className="flex flex-1 flex-col gap-6">
+        <motion.section
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-1 flex-col gap-6"
+        >
           {/* Solo memorización: las palabras aparecen y se quedan 3 s. Aquí
               NO hay cuenta atrás; el cronómetro llega en la fase de ordenar. */}
           <p className="font-display text-chip-gold animate-pulse text-center text-[10px] tracking-widest">
@@ -351,11 +446,16 @@ export default function PlayPage() {
               </li>
             ))}
           </ol>
-        </section>
+        </motion.section>
       )}
 
       {(phase === "arrange" || phase === "checking") && current && (
-        <section className="flex flex-1 flex-col gap-6">
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="flex flex-1 flex-col gap-6"
+        >
           {/* Cuenta atrás de 30 s para ordenar, con milisegundos. Los últimos
               3 s se ponen gigantes detrás de las cartas. Solo mientras se
               ordena; al comprobar se desmonta y se detiene. */}
@@ -368,9 +468,19 @@ export default function PlayPage() {
           )}
 
           <p className="font-sans text-cream/70 pt-14 text-center text-base">
-            {phase === "checking"
-              ? "Comprobando el orden… 🎰"
-              : "Arrástralas al orden original — o toca una y luego otra para intercambiarlas. 🃏"}
+            {phase === "checking" ? (
+              "Comprobando el orden… 🎰"
+            ) : (
+              <>
+                Arrástralas al orden original — o toca una y luego otra para
+                intercambiarlas. 🃏
+                <br />
+                <span className="text-cream/45 text-sm">
+                  Teclado: ↑ ↓ para elegir, un número para soltarla, Enter para
+                  comprobar.
+                </span>
+              </>
+            )}
           </p>
 
           {/* De dónde salen los puntos: cantidad de palabras y rapidez. */}
@@ -391,10 +501,18 @@ export default function PlayPage() {
           )}
 
           <div className="relative">
-            <ol className="flex flex-col gap-3">
+            <Reorder.Group
+              as="ol"
+              axis="y"
+              values={board}
+              onReorder={setBoard}
+              className="flex flex-col gap-3"
+            >
               {board.map((word, i) => {
                 const checking = phase === "checking";
                 const justScored = checking && i === checkIndex - 1;
+                const isSelected = !checking && selected === i;
+                const isFlashing = !checking && flashIndex === i;
                 let tone = "bg-card-face";
                 let ink = "text-card-ink";
                 if (checking && i < checkIndex) {
@@ -402,29 +520,49 @@ export default function PlayPage() {
                 } else if (checking && i === wrongIndex) {
                   tone = "bg-chip-red";
                   ink = "text-cream";
-                } else if (!checking && selected === i) {
+                } else if (isSelected) {
                   tone = "bg-chip-gold";
                 }
 
                 return (
-                  <li
+                  <Reorder.Item
                     key={word}
-                    draggable={!checking}
-                    onDragStart={() => startDrag(i)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleDrop(i)}
-                    onDragEnd={endDrag}
+                    value={word}
+                    as="li"
+                    drag={!checking}
+                    dragListener
+                    dragElastic={0.12}
+                    dragTransition={{ bounceStiffness: 500, bounceDamping: 28 }}
+                    whileDrag={{
+                      scale: 1.07,
+                      zIndex: 30,
+                      boxShadow: "0 22px 34px -8px rgba(0,0,0,0.55)",
+                    }}
+                    whileTap={!checking ? { scale: 0.96 } : undefined}
+                    animate={{ scale: isSelected ? 1.035 : 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                    onDragStart={() => {
+                      justDraggedRef.current = true;
+                    }}
+                    onDragEnd={() => {
+                      clearTimeout(dragEndTimerRef.current);
+                      dragEndTimerRef.current = setTimeout(() => {
+                        justDraggedRef.current = false;
+                      }, 300);
+                    }}
                     onClick={() => !checking && handleTap(i)}
                     style={{ "--tilt": tiltFor(i) } as React.CSSProperties}
                     className={`card-base transition-colors duration-300 ${tone} ${ink} ${
-                      justScored ? "animate-row-flash" : ""
+                      justScored || isFlashing ? "animate-row-flash" : ""
                     } ${
                       !checking
-                        ? "hover:-translate-y-1 hover:brightness-105 cursor-grab active:cursor-grabbing active:scale-105"
+                        ? "hover:-translate-y-1 hover:brightness-105 cursor-grab active:cursor-grabbing"
                         : "cursor-default"
-                    } ${
-                      i === wrongIndex ? "animate-shake" : ""
-                    } ${dragIndex === i ? "scale-105 opacity-50" : ""}`}
+                    } ${i === wrongIndex ? "animate-shake" : ""} ${
+                      isSelected
+                        ? "ring-chip-gold shadow-[0_0_24px_rgba(255,203,43,0.55)] ring-4 ring-offset-2 ring-offset-felt"
+                        : ""
+                    }`}
                   >
                     <div className="flex items-center gap-5 px-6 py-4">
                       <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
@@ -442,10 +580,10 @@ export default function PlayPage() {
                         <span className="text-2xl">💥</span>
                       )}
                     </div>
-                  </li>
+                  </Reorder.Item>
                 );
               })}
-            </ol>
+            </Reorder.Group>
 
             {/* Los puntos de la última palabra acertada salen disparados hacia arriba. */}
             {phase === "checking" && checkIndex > 0 && wrongIndex === null && (
@@ -476,11 +614,16 @@ export default function PlayPage() {
               ¡LISTO! ✅
             </span>
           </button>
-        </section>
+        </motion.section>
       )}
 
       {phase === "gameover" && current && (
-        <section className="animate-pop-in flex flex-1 flex-col items-center justify-center gap-6 text-center">
+        <motion.section
+          initial={{ opacity: 0, scale: 0.7, rotate: -6 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          className="flex flex-1 flex-col items-center justify-center gap-6 text-center"
+        >
           <Image
             src={calaca}
             alt="Game Over"
@@ -535,7 +678,7 @@ export default function PlayPage() {
               </span>
             </Link>
           </div>
-        </section>
+        </motion.section>
       )}
     </main>
   );
