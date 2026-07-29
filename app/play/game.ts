@@ -16,26 +16,14 @@ export function wordCountFor(round: number): number {
   return Math.min(15, 10 + Math.ceil((round - 9) / 2));
 }
 
-/** Categorías de longitud permitidas en cada ronda. */
-export function poolsFor(round: number): Difficulty[] {
-  switch (round) {
-    case 1:
-    case 2:
-      return ["easy"];
-    case 3:
-      return ["easy", "medium"];
-    case 4:
-    case 5:
-      return ["medium"];
-    case 6:
-      return ["medium", "hard"];
-    case 7:
-    case 8:
-      return ["hard"];
-    default:
-      return ["easy", "medium", "hard"];
-  }
-}
+/**
+ * Bolsa única con TODAS las palabras, sin separar por dificultad: cualquier
+ * ronda puede mezclar cortas y largas. La dificultad de cada palabra sigue
+ * contando, pero en los puntos (ver lengthBonus), no en qué ronda aparece.
+ */
+const ALL_WORDS: readonly string[] = (
+  Object.keys(WORDS) as Difficulty[]
+).flatMap((level) => [...WORDS[level]]);
 
 export function shuffle<T>(items: readonly T[]): T[] {
   const copy = [...items];
@@ -72,12 +60,11 @@ export function memorizeMs(words: string[]): number {
 
 export function buildRound(round: number, recentWords: string[]): Round {
   const count = wordCountFor(round);
-  const pool = poolsFor(round).flatMap((level) => [...WORDS[level]]);
   const recent = new Set(recentWords);
 
   // Se evitan las palabras de las últimas rondas salvo que no queden suficientes.
-  const fresh = pool.filter((w) => !recent.has(w));
-  const source = fresh.length >= count ? fresh : pool;
+  const fresh = ALL_WORDS.filter((w) => !recent.has(w));
+  const source = fresh.length >= count ? fresh : ALL_WORDS;
 
   const words = shuffle(source).slice(0, count);
   const totalMs = memorizeMs(words);
