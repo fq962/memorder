@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import cerebri from "./images/cerebri.png";
 import HoverSound from "./components/HoverSound";
+import { useSettings } from "./lib/settings";
 
 const PLAYERS = [
   "haide",
@@ -78,6 +81,8 @@ const SHADES = [
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function Home() {
+  const { t } = useSettings();
+
   return (
     <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 py-14 md:flex-row md:items-center md:gap-10">
       {/* ---- Panel izquierdo: título + botón PLAY ---- */}
@@ -95,7 +100,7 @@ export default function Home() {
             MEMORDER
           </h1>
           <p className="font-display text-cream/50 mt-3 text-[10px] tracking-widest">
-            memoriza · o llora 🧠
+            {t("home.tagline")}
           </p>
         </div>
 
@@ -112,15 +117,18 @@ export default function Home() {
         </Link>
 
         <p className="font-sans text-cream/60 max-w-xs text-sm">
-          Memoriza el orden de las palabras y reconstrúyelo. Un error y{" "}
-          <span className="text-chip-red font-bold">boom 💥</span>.
+          {t("home.descriptionPre")}{" "}
+          <span className="text-chip-red font-bold">
+            {t("home.descriptionBoom")}
+          </span>
+          .
         </p>
       </section>
 
       {/* ---- Panel derecho: ranking en cartas ---- */}
       <section className="scrollbar-hide px-2 py-6 [mask-image:linear-gradient(to_bottom,transparent,#000_4%,#000_84%,transparent)] md:max-h-[78vh] md:flex-1 md:overflow-y-auto">
         <p className="font-display text-chip-gold mb-4 text-center text-sm tracking-widest [text-shadow:2px_2px_0_rgba(0,0,0,0.5)]">
-          🏆 TOP CEREBROS 🏆
+          {t("home.rankingTitle")}
         </p>
         <ol className="flex flex-col gap-2.5">
           {ranking.map(({ rank, user, score }) => {

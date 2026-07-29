@@ -1,4 +1,4 @@
-import { WORDS, type Difficulty } from "./words";
+import { wordBank, type Difficulty, type Language } from "./words";
 
 export type Round = {
   /** Orden correcto que el jugador debe reconstruir. */
@@ -17,13 +17,24 @@ export function wordCountFor(round: number): number {
 }
 
 /**
- * Bolsa única con TODAS las palabras, sin separar por dificultad: cualquier
- * ronda puede mezclar cortas y largas. La dificultad de cada palabra sigue
- * contando, pero en los puntos (ver lengthBonus), no en qué ronda aparece.
+ * Bolsa única con TODAS las palabras de un idioma, sin separar por
+ * dificultad: cualquier ronda puede mezclar cortas y largas. La dificultad
+ * de cada palabra sigue contando, pero en los puntos (ver lengthBonus), no
+ * en qué ronda aparece. Se calcula una sola vez por idioma y se cachea.
  */
-const ALL_WORDS: readonly string[] = (
-  Object.keys(WORDS) as Difficulty[]
-).flatMap((level) => [...WORDS[level]]);
+const allWordsCache = new Map<Language, readonly string[]>();
+
+function allWords(language: Language): readonly string[] {
+  const cached = allWordsCache.get(language);
+  if (cached) return cached;
+
+  const bank = wordBank(language);
+  const words = (Object.keys(bank) as Difficulty[]).flatMap((level) => [
+    ...bank[level],
+  ]);
+  allWordsCache.set(language, words);
+  return words;
+}
 
 export function shuffle<T>(items: readonly T[]): T[] {
   const copy = [...items];
@@ -58,13 +69,18 @@ export function memorizeMs(words: string[]): number {
   return words.length * MS_PER_WORD + average * MS_PER_AVERAGE_LETTER;
 }
 
-export function buildRound(round: number, recentWords: string[]): Round {
+export function buildRound(
+  round: number,
+  recentWords: string[],
+  language: Language = "es",
+): Round {
   const count = wordCountFor(round);
   const recent = new Set(recentWords);
+  const pool = allWords(language);
 
   // Se evitan las palabras de las últimas rondas salvo que no queden suficientes.
-  const fresh = ALL_WORDS.filter((w) => !recent.has(w));
-  const source = fresh.length >= count ? fresh : ALL_WORDS;
+  const fresh = pool.filter((w) => !recent.has(w));
+  const source = fresh.length >= count ? fresh : pool;
 
   const words = shuffle(source).slice(0, count);
   const totalMs = memorizeMs(words);

@@ -21,6 +21,19 @@ let ctx: AudioContext | null = null;
 const buffers = new Map<SoundName, AudioBuffer>();
 let loading: Promise<void> | null = null;
 
+// Volumen global (0-1), controlado desde el menú de opciones. Se aplica a
+// todo lo que pasa por playSound/playTick; HoverSound usa <audio> nativo y
+// se escala aparte con getMasterVolume().
+let masterVolume = 1;
+
+export function setMasterVolume(volume: number) {
+  masterVolume = Math.min(1, Math.max(0, volume));
+}
+
+export function getMasterVolume(): number {
+  return masterVolume;
+}
+
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
@@ -82,7 +95,7 @@ export function playSound(
   src.playbackRate.value = rate;
 
   const gain = audioCtx.createGain();
-  gain.gain.value = volume;
+  gain.gain.value = volume * masterVolume;
 
   src.connect(gain).connect(audioCtx.destination);
   src.start();
@@ -102,7 +115,8 @@ export function playTick(freq = 880) {
   osc.frequency.value = freq;
 
   const gain = audioCtx.createGain();
-  gain.gain.value = 0.06;
+  // exponentialRampToValueAtTime no admite partir de 0: se fuerza un mínimo.
+  gain.gain.value = Math.max(0.0001, 0.06 * masterVolume);
   gain.gain.exponentialRampToValueAtTime(
     0.0001,
     audioCtx.currentTime + 0.08,
