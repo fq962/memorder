@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
+import { getMasterVolume } from "../lib/sounds";
 
 /**
  * Envuelve contenido y reproduce un audio mientras el puntero está encima.
@@ -23,8 +24,10 @@ export default function HoverSound({
   function start() {
     if (!audio.current) {
       audio.current = new Audio(src);
-      audio.current.volume = volume;
     }
+    // Se relee en cada hover: el volumen global puede haber cambiado desde
+    // el menú de opciones sin que este audio se vuelva a crear.
+    audio.current.volume = volume * getMasterVolume();
     // La política de autoplay puede rechazarlo si el usuario aún no ha
     // interactuado con la página; en ese caso simplemente no suena.
     void audio.current.play().catch(() => {});

@@ -8,6 +8,8 @@ import MemorizeTimer from "../components/MemorizeTimer";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
+import { useSettings } from "../lib/settings";
+import { ICONS } from "../lib/icons";
 import {
   buildRound,
   countMultiplier,
@@ -114,6 +116,7 @@ function CountUp({ value }: { value: number }) {
 }
 
 export default function PlayPage() {
+  const { language, t } = useSettings();
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
@@ -165,16 +168,19 @@ export default function PlayPage() {
     void preloadSounds();
   }, []);
 
-  const startRound = useCallback((next: number) => {
-    const generated = buildRound(next, recentRef.current.flat());
-    recentRef.current = [generated.words, ...recentRef.current].slice(0, 5);
-    currentRef.current = generated;
-    setCurrent(generated);
-    setSelected(null);
-    setCheckIndex(0);
-    setWrongIndex(null);
-    setPhase("showing");
-  }, []);
+  const startRound = useCallback(
+    (next: number) => {
+      const generated = buildRound(next, recentRef.current.flat(), language);
+      recentRef.current = [generated.words, ...recentRef.current].slice(0, 5);
+      currentRef.current = generated;
+      setCurrent(generated);
+      setSelected(null);
+      setCheckIndex(0);
+      setWrongIndex(null);
+      setPhase("showing");
+    },
+    [language],
+  );
 
   // Fase de memorización: las palabras aparecen repartidas y se mantienen
   // SHOW_HOLD_MS después de que salga la última; luego se baraja y a ordenar.
@@ -360,7 +366,9 @@ export default function PlayPage() {
         {phase !== "idle" && (
           <p className="font-display flex items-center gap-5 text-sm">
             <span className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-3 py-1.5">
-              <span className="block skew-x-6 text-[10px]">RONDA {round}</span>
+              <span className="block skew-x-6 text-[10px]">
+                {t("play.round")} {round}
+              </span>
             </span>
             <span className="text-lg">
               <CountUp value={score} />
@@ -388,10 +396,15 @@ export default function PlayPage() {
             SEQUENCE
           </h1>
           <p className="font-sans text-cream/70 max-w-md text-base">
-            Memoriza el orden en el que aparecen las palabras. Después
-            reconstrúyelo arrastrándolas.{" "}
-            <span className="text-chip-red font-bold">Un solo error</span>{" "}
-            termina la partida. 🧠🔥
+            {t("play.idleDescriptionPre")}{" "}
+            <span className="text-chip-red font-bold">
+              {t("play.idleDescriptionBold")}
+            </span>{" "}
+            {t("play.idleDescriptionPost")}{" "}
+            <span className="inline-flex items-center gap-1 align-middle">
+              <Image src={ICONS.brain} alt="" width={18} height={16} />
+              <Image src={ICONS.fire} alt="" width={14} height={20} />
+            </span>
           </p>
           <button
             type="button"
@@ -403,7 +416,7 @@ export default function PlayPage() {
             className="group card-base bg-chip-green animate-bob text-card-ink -rotate-2 px-10 py-5 transition-transform duration-150 hover:-rotate-1 hover:scale-110 hover:brightness-110 active:scale-95"
           >
             <span className="font-display block text-2xl [text-shadow:2px_2px_0_rgba(0,0,0,0.35)]">
-              ▶ COMENZAR
+              {t("play.start")}
             </span>
           </button>
         </motion.section>
@@ -418,8 +431,9 @@ export default function PlayPage() {
         >
           {/* Solo memorización: las palabras aparecen y se quedan 3 s. Aquí
               NO hay cuenta atrás; el cronómetro llega en la fase de ordenar. */}
-          <p className="font-display text-chip-gold animate-pulse text-center text-[10px] tracking-widest">
-            🧠 MEMORIZA EL ORDEN 👀
+          <p className="font-display text-chip-gold animate-pulse flex items-center justify-center gap-2 text-center text-[10px] tracking-widest">
+            <Image src={ICONS.brain} alt="" width={16} height={14} />
+            {t("play.showingHint")}
           </p>
 
           {/* Todas las palabras salen de golpe, repartidas como cartas. */}
@@ -469,15 +483,13 @@ export default function PlayPage() {
 
           <p className="font-sans text-cream/70 pt-14 text-center text-base">
             {phase === "checking" ? (
-              "Comprobando el orden… 🎰"
+              t("play.checkingLabel")
             ) : (
               <>
-                Arrástralas al orden original — o toca una y luego otra para
-                intercambiarlas. 🃏
+                {t("play.arrangeHint")}
                 <br />
                 <span className="text-cream/45 text-sm">
-                  Teclado: ↑ ↓ para elegir, un número para soltarla, Enter para
-                  comprobar.
+                  {t("play.keyboardHint")}
                 </span>
               </>
             )}
@@ -488,13 +500,13 @@ export default function PlayPage() {
             <p className="font-display flex flex-wrap justify-center gap-3 text-[10px]">
               <span className="card-base bg-chip-blue/90 text-cream -skew-x-6 px-3 py-1.5">
                 <span className="block skew-x-6">
-                  🃏 {current.words.length} PALABRAS ×
+                  🃏 {current.words.length} {t("play.wordsChip")} ×
                   {countMultiplier(current.words.length).toFixed(2)}
                 </span>
               </span>
               <span className="card-base bg-chip-gold text-card-ink -skew-x-6 px-3 py-1.5">
                 <span className="block skew-x-6">
-                  ⚡ RAPIDEZ ×{speed.toFixed(2)}
+                  ⚡ {t("play.speedChip")} ×{speed.toFixed(2)}
                 </span>
               </span>
             </p>
@@ -611,7 +623,7 @@ export default function PlayPage() {
             className="group card-base bg-chip-gold text-card-ink -skew-x-6 self-center px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
           >
             <span className="font-display block skew-x-6 text-lg">
-              ¡LISTO! ✅
+              {t("play.ready")}
             </span>
           </button>
         </motion.section>
@@ -635,17 +647,17 @@ export default function PlayPage() {
 
           <dl className="card-base bg-card-face text-card-ink flex w-full max-w-sm flex-col gap-3 px-8 py-6 font-sans text-base">
             <div className="flex justify-between gap-10">
-              <dt className="opacity-60">Puntuación</dt>
+              <dt className="opacity-60">{t("play.gameoverScore")}</dt>
               <dd className="font-display text-chip-red text-sm tabular-nums">
                 {score}
               </dd>
             </div>
             <div className="flex justify-between gap-10">
-              <dt className="opacity-60">Ronda alcanzada</dt>
+              <dt className="opacity-60">{t("play.gameoverRoundReached")}</dt>
               <dd className="font-display text-sm tabular-nums">{round}</dd>
             </div>
             <div className="flex justify-between gap-10">
-              <dt className="opacity-60">Palabras acertadas</dt>
+              <dt className="opacity-60">{t("play.gameoverWordsCorrect")}</dt>
               <dd className="font-display text-sm tabular-nums">
                 {wordsCorrect}
               </dd>
@@ -653,7 +665,7 @@ export default function PlayPage() {
           </dl>
 
           <p className="font-sans text-cream/60 max-w-md text-sm">
-            El orden correcto era:{" "}
+            {t("play.gameoverCorrectOrder")}{" "}
             <span className="text-chip-gold font-bold">
               {current.words.join(" · ")}
             </span>
@@ -666,15 +678,16 @@ export default function PlayPage() {
               className="card-base bg-chip-green text-card-ink -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
             >
               <span className="font-display block skew-x-6 text-sm">
-                🔁 OTRA VEZ
+                {t("play.gameoverRetry")}
               </span>
             </button>
             <Link
               href="/"
               className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
             >
-              <span className="font-display block skew-x-6 text-sm">
-                🏆 RANKING
+              <span className="font-display flex skew-x-6 items-center gap-2 text-sm">
+                <Image src={ICONS.trophy} alt="" width={16} height={16} />
+                {t("play.gameoverRanking")}
               </span>
             </Link>
           </div>

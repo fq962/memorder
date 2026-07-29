@@ -60,6 +60,13 @@
   --color-accent-19: #61b6ef;
   --color-accent-20: #74bef0;
 
+  /* Brillo radial + viñeta detrás del fieltro. */
+  --felt-glow:
+    radial-gradient(circle at 50% 18%, rgba(93, 76, 220, 0.22), transparent 55%),
+    radial-gradient(circle at 82% 82%, rgba(58, 160, 255, 0.14), transparent 50%),
+    radial-gradient(circle at 12% 88%, rgba(255, 77, 94, 0.14), transparent 50%),
+    radial-gradient(ellipse at center, #14283a 0%, #0e1a24 55%, #070d13 100%);
+
   /* ---- Animaciones ---- */
   --animate-row-in: row-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-card-deal: card-deal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -77,26 +84,131 @@
 }
 
 /* =========================================================
+   Temas: reasignan los tokens de color de @theme por encima.
+   Al no estar en un @layer, estas reglas ganan siempre sobre las
+   utilidades generadas por Tailwind (sin capa > cualquier capa),
+   así que basta con setear data-theme en <html> para retemar toda
+   la app sin tocar ninguna clase de los componentes.
+   ========================================================= */
+:root[data-theme="hacker"] {
+  --color-felt: #050b06;
+  --color-cream: #dcefe2;
+
+  --color-chip-red: #e88a8a;
+  --color-chip-blue: #7ab8c4;
+  --color-chip-gold: #d4e89c;
+  --color-chip-green: #8fd9a0;
+  --color-chip-purple: #a89ad4;
+  --color-chip-pink: #e8a0c0;
+
+  --color-card-face: #d4eadc;
+  --color-card-ink: #0a1f12;
+
+  --chrome-gradient: linear-gradient(
+    100deg,
+    #a89ad4 0%,
+    #ffffff 10%,
+    #e88a8a 20%,
+    #d4e89c 30%,
+    #ffffff 42%,
+    #8fd9a0 52%,
+    #7ab8c4 62%,
+    #e8a0c0 72%,
+    #ffffff 84%,
+    #a89ad4 92%,
+    #a89ad4 100%
+  );
+
+  --color-accent-1: #8fd9a0;
+  --color-accent-2: #84cd96;
+  --color-accent-3: #79c18c;
+  --color-accent-4: #6eb582;
+  --color-accent-5: #63a978;
+  --color-accent-6: #589d6e;
+  --color-accent-7: #4d9164;
+  --color-accent-8: #42855a;
+  --color-accent-9: #3a7952;
+  --color-accent-10: #336d4a;
+  --color-accent-11: #2c6142;
+  --color-accent-12: #25553a;
+  --color-accent-13: #1f4932;
+  --color-accent-14: #183d2a;
+  --color-accent-15: #143524;
+  --color-accent-16: #102d1e;
+  --color-accent-17: #0c2518;
+  --color-accent-18: #091e13;
+  --color-accent-19: #07170f;
+  --color-accent-20: #05100b;
+
+  --felt-glow:
+    radial-gradient(circle at 50% 18%, rgba(143, 217, 160, 0.18), transparent 55%),
+    radial-gradient(circle at 82% 82%, rgba(122, 184, 196, 0.16), transparent 50%),
+    radial-gradient(circle at 12% 88%, rgba(168, 154, 212, 0.12), transparent 50%),
+    radial-gradient(ellipse at center, #0a1a10 0%, #050b06 55%, #010302 100%);
+}
+
+:root[data-theme="cozy"] {
+  --color-felt: #2b2438;
+  --color-cream: #fbeee0;
+
+  --color-chip-red: #e8536b;
+  --color-chip-blue: #6a8fe0;
+  --color-chip-gold: #ffd6a5;
+  --color-chip-green: #b9fbc0;
+  --color-chip-purple: #a081c2;
+  --color-chip-pink: #ffc8dd;
+
+  --color-card-face: #fff6ec;
+  --color-card-ink: #5b4b6a;
+
+  --chrome-gradient: linear-gradient(
+    100deg,
+    #a081c2 0%,
+    #ffffff 10%,
+    #e8536b 20%,
+    #ffd6a5 30%,
+    #ffffff 42%,
+    #b9fbc0 52%,
+    #6a8fe0 62%,
+    #ffc8dd 72%,
+    #ffffff 84%,
+    #a081c2 92%,
+    #a081c2 100%
+  );
+
+  --color-accent-1: #ffd6a5;
+  --color-accent-2: #fadfae;
+  --color-accent-3: #ffe8b8;
+  --color-accent-4: #fff1c2;
+  --color-accent-5: #f5f5b8;
+  --color-accent-6: #e3f2b8;
+  --color-accent-7: #d1efc0;
+  --color-accent-8: #c0ecc8;
+  --color-accent-9: #b9fbc0;
+  --color-accent-10: #b3f0d1;
+  --color-accent-11: #aee8e0;
+  --color-accent-12: #a8e0ee;
+  --color-accent-13: #a3d8f5;
+  --color-accent-14: #a0c4ff;
+  --color-accent-15: #b0b8f5;
+  --color-accent-16: #c0adf0;
+  --color-accent-17: #cdb4db;
+  --color-accent-18: #d9b3e0;
+  --color-accent-19: #e8b8d9;
+  --color-accent-20: #ffc8dd;
+
+  --felt-glow:
+    radial-gradient(circle at 50% 18%, rgba(160, 129, 194, 0.28), transparent 55%),
+    radial-gradient(circle at 82% 82%, rgba(255, 200, 221, 0.2), transparent 50%),
+    radial-gradient(circle at 12% 88%, rgba(255, 214, 165, 0.2), transparent 50%),
+    radial-gradient(ellipse at center, #362c47 0%, #2b2438 55%, #1f1a2b 100%);
+}
+
+/* =========================================================
    Fondo: fieltro oscuro con brillo radial y viñeta
    ========================================================= */
 .bg-felt-glow {
-  background:
-    radial-gradient(
-      circle at 50% 18%,
-      rgba(93, 76, 220, 0.22),
-      transparent 55%
-    ),
-    radial-gradient(
-      circle at 82% 82%,
-      rgba(58, 160, 255, 0.14),
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 12% 88%,
-      rgba(255, 77, 94, 0.14),
-      transparent 50%
-    ),
-    radial-gradient(ellipse at center, #14283a 0%, #0e1a24 55%, #070d13 100%);
+  background: var(--felt-glow);
 }
 
 /* Scanlines CRT: líneas horizontales tenues + leve viñeta. */
