@@ -5,6 +5,7 @@ import Image from "next/image";
 import cerebri from "./images/cerebri.png";
 import HoverSound from "./components/HoverSound";
 import { useSettings } from "./lib/settings";
+import { ICONS } from "./lib/icons";
 
 const PLAYERS = [
   "haide",
@@ -78,7 +79,7 @@ const SHADES = [
 ];
 
 // Medallas para el podio.
-const MEDALS = ["🥇", "🥈", "🥉"];
+const MEDALS = [ICONS.goldMedal, ICONS.silverMedal, ICONS.bronzeMedal];
 
 export default function Home() {
   const { t } = useSettings();
@@ -99,8 +100,9 @@ export default function Home() {
           <h1 className="font-display text-chrome text-4xl leading-tight sm:text-5xl">
             MEMORDER
           </h1>
-          <p className="font-display text-cream/50 mt-3 text-[10px] tracking-widest">
+          <p className="font-display text-cream/50 mt-3 flex items-center justify-center gap-1.5 text-[10px] tracking-widest">
             {t("home.tagline")}
+            <Image src={ICONS.brain} alt="" width={16} height={14} />
           </p>
         </div>
 
@@ -127,8 +129,10 @@ export default function Home() {
 
       {/* ---- Panel derecho: ranking en cartas ---- */}
       <section className="scrollbar-hide px-2 py-6 [mask-image:linear-gradient(to_bottom,transparent,#000_4%,#000_84%,transparent)] md:max-h-[78vh] md:flex-1 md:overflow-y-auto">
-        <p className="font-display text-chip-gold mb-4 text-center text-sm tracking-widest [text-shadow:2px_2px_0_rgba(0,0,0,0.5)]">
+        <p className="font-display text-chip-gold mb-4 flex items-center justify-center gap-2 text-center text-sm tracking-widest [text-shadow:2px_2px_0_rgba(0,0,0,0.5)]">
+          <Image src={ICONS.trophy} alt="" width={18} height={18} />
           {t("home.rankingTitle")}
+          <Image src={ICONS.trophy} alt="" width={18} height={18} />
         </p>
         <ol className="flex flex-col gap-2.5">
           {ranking.map(({ rank, user, score }) => {
@@ -155,11 +159,20 @@ export default function Home() {
                   }`}
                 >
                   <span
-                    className={`font-display w-14 shrink-0 ${zoom} ${
+                    className={`font-display flex w-14 shrink-0 items-center ${zoom} ${
                       rank === 1 ? "text-lg" : "text-sm"
                     }`}
                   >
-                    {medal ?? `#${rank}`}
+                    {medal ? (
+                      <Image
+                        src={medal}
+                        alt=""
+                        width={rank === 1 ? 20 : 16}
+                        height={rank === 1 ? 33 : 26}
+                      />
+                    ) : (
+                      `#${rank}`
+                    )}
                   </span>
                   <span
                     className={`flex-1 truncate font-sans font-bold ${zoom} ${

@@ -1,7 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import { useState } from "react";
+import { ICONS } from "../lib/icons";
 import { LANGUAGE_OPTIONS } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
 import { playTick } from "../lib/sounds";
@@ -19,10 +21,12 @@ export default function SettingsMenu() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={t("settings.open")}
-        className="card-base bg-card-face text-card-ink fixed top-4 right-4 z-40 flex h-11 w-11 items-center justify-center text-xl transition-transform hover:scale-110 hover:rotate-12 active:scale-95"
+        className="card-base bg-chip-red text-cream fixed top-4 right-4 z-40 -skew-x-6 px-5 py-3 transition-transform hover:scale-110 hover:brightness-110 active:scale-95"
       >
-        ⚙️
+        <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
+          <Image src={ICONS.settings} alt="" width={28} height={27} />
+          {t("settings.open")}
+        </span>
       </button>
 
       <AnimatePresence>
@@ -52,7 +56,8 @@ export default function SettingsMenu() {
                 ✕
               </button>
 
-              <h2 className="font-display text-center text-sm tracking-widest">
+              <h2 className="font-display flex items-center justify-center gap-2 text-center text-sm tracking-widest">
+                <Image src={ICONS.settings} alt="" width={18} height={17} />
                 {t("settings.title")}
               </h2>
 

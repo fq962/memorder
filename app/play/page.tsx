@@ -9,6 +9,7 @@ import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
 import { useSettings } from "../lib/settings";
+import { ICONS } from "../lib/icons";
 import {
   buildRound,
   countMultiplier,
@@ -399,7 +400,11 @@ export default function PlayPage() {
             <span className="text-chip-red font-bold">
               {t("play.idleDescriptionBold")}
             </span>{" "}
-            {t("play.idleDescriptionPost")}
+            {t("play.idleDescriptionPost")}{" "}
+            <span className="inline-flex items-center gap-1 align-middle">
+              <Image src={ICONS.brain} alt="" width={18} height={16} />
+              <Image src={ICONS.fire} alt="" width={14} height={20} />
+            </span>
           </p>
           <button
             type="button"
@@ -426,7 +431,8 @@ export default function PlayPage() {
         >
           {/* Solo memorización: las palabras aparecen y se quedan 3 s. Aquí
               NO hay cuenta atrás; el cronómetro llega en la fase de ordenar. */}
-          <p className="font-display text-chip-gold animate-pulse text-center text-[10px] tracking-widest">
+          <p className="font-display text-chip-gold animate-pulse flex items-center justify-center gap-2 text-center text-[10px] tracking-widest">
+            <Image src={ICONS.brain} alt="" width={16} height={14} />
             {t("play.showingHint")}
           </p>
 
@@ -679,7 +685,8 @@ export default function PlayPage() {
               href="/"
               className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
             >
-              <span className="font-display block skew-x-6 text-sm">
+              <span className="font-display flex skew-x-6 items-center gap-2 text-sm">
+                <Image src={ICONS.trophy} alt="" width={16} height={16} />
                 {t("play.gameoverRanking")}
               </span>
             </Link>

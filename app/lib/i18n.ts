@@ -11,20 +11,20 @@ export const LANGUAGE_OPTIONS: { code: Language; label: string }[] = [
 ];
 
 const es = {
-  "home.tagline": "memoriza · o llora 🧠",
+  "home.tagline": "memoriza · o llora",
   "home.descriptionPre":
     "Memoriza el orden de las palabras y reconstrúyelo. Un error y",
   "home.descriptionBoom": "boom 💥",
-  "home.rankingTitle": "🏆 TOP CEREBROS 🏆",
+  "home.rankingTitle": "TOP CEREBROS",
 
   "play.round": "RONDA",
   "play.idleDescriptionPre":
     "Memoriza el orden en el que aparecen las palabras. Después reconstrúyelo arrastrándolas.",
   "play.idleDescriptionBold": "Un solo error",
-  "play.idleDescriptionPost": "termina la partida. 🧠🔥",
+  "play.idleDescriptionPost": "termina la partida.",
   "play.start": "▶ COMENZAR",
 
-  "play.showingHint": "🧠 MEMORIZA EL ORDEN 👀",
+  "play.showingHint": "MEMORIZA EL ORDEN 👀",
 
   "play.checkingLabel": "Comprobando el orden… 🎰",
   "play.arrangeHint":
@@ -40,30 +40,30 @@ const es = {
   "play.gameoverWordsCorrect": "Palabras acertadas",
   "play.gameoverCorrectOrder": "El orden correcto era:",
   "play.gameoverRetry": "🔁 OTRA VEZ",
-  "play.gameoverRanking": "🏆 RANKING",
+  "play.gameoverRanking": "RANKING",
 
   "settings.open": "Ajustes",
-  "settings.title": "⚙️ OPCIONES",
+  "settings.title": "OPCIONES",
   "settings.volume": "Volumen",
   "settings.language": "Idioma",
   "settings.close": "Cerrar",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
-  "home.tagline": "memorize · or cry 🧠",
+  "home.tagline": "memorize · or cry",
   "home.descriptionPre":
     "Memorize the order of the words and rebuild it. One mistake and",
   "home.descriptionBoom": "boom 💥",
-  "home.rankingTitle": "🏆 TOP BRAINS 🏆",
+  "home.rankingTitle": "TOP BRAINS",
 
   "play.round": "ROUND",
   "play.idleDescriptionPre":
     "Memorize the order the words appear in. Then rebuild it by dragging them.",
   "play.idleDescriptionBold": "One mistake",
-  "play.idleDescriptionPost": "ends the run. 🧠🔥",
+  "play.idleDescriptionPost": "ends the run.",
   "play.start": "▶ START",
 
-  "play.showingHint": "🧠 MEMORIZE THE ORDER 👀",
+  "play.showingHint": "MEMORIZE THE ORDER 👀",
 
   "play.checkingLabel": "Checking the order… 🎰",
   "play.arrangeHint":
@@ -79,10 +79,10 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverWordsCorrect": "Words correct",
   "play.gameoverCorrectOrder": "The correct order was:",
   "play.gameoverRetry": "🔁 TRY AGAIN",
-  "play.gameoverRanking": "🏆 RANKING",
+  "play.gameoverRanking": "RANKING",
 
   "settings.open": "Settings",
-  "settings.title": "⚙️ OPTIONS",
+  "settings.title": "OPTIONS",
   "settings.volume": "Volume",
   "settings.language": "Language",
   "settings.close": "Close",
