@@ -7,6 +7,7 @@ import { ICONS } from "../lib/icons";
 import { LANGUAGE_OPTIONS } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
 import { playTick } from "../lib/sounds";
+import { THEME_OPTIONS } from "../lib/themes";
 
 /**
  * Botón de engranaje fijo en la esquina + panel modal con volumen e idioma.
@@ -14,7 +15,8 @@ import { playTick } from "../lib/sounds";
  */
 export default function SettingsMenu() {
   const [open, setOpen] = useState(false);
-  const { language, volume, setLanguage, setVolume, t } = useSettings();
+  const { language, volume, theme, setLanguage, setVolume, setTheme, t } =
+    useSettings();
 
   return (
     <>
@@ -76,6 +78,45 @@ export default function SettingsMenu() {
                   onChange={(e) => setVolume(Number(e.target.value) / 100)}
                   className="accent-chip-gold h-2 w-full cursor-pointer"
                 />
+              </div>
+
+              <div className="mt-8 flex flex-col gap-3">
+                <p className="font-display text-[10px] tracking-wide">
+                  🎨 {t("settings.theme")}
+                </p>
+                <div className="flex gap-3">
+                  {THEME_OPTIONS.map((option) => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      onClick={() => {
+                        setTheme(option.code);
+                        playTick(560 + THEME_OPTIONS.indexOf(option) * 80);
+                      }}
+                      className={`flex flex-1 flex-col items-center gap-2 rounded-lg border px-2 py-2.5 transition-transform hover:scale-105 active:scale-95 ${
+                        theme === option.code
+                          ? "border-chip-gold bg-chip-gold/15"
+                          : "border-card-ink/20 bg-transparent"
+                      }`}
+                    >
+                      <span
+                        className="grid grid-cols-2 gap-0.5 overflow-hidden rounded-full"
+                        style={{ width: 18, height: 18 }}
+                      >
+                        {option.swatch.map((color, i) => (
+                          <span
+                            key={i}
+                            style={{ backgroundColor: color }}
+                            className="h-full w-full"
+                          />
+                        ))}
+                      </span>
+                      <span className="font-display text-card-ink text-[9px]">
+                        {option.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-8 flex flex-col gap-3">

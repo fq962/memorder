@@ -9,15 +9,22 @@ import {
 } from "react";
 import { setMasterVolume } from "./sounds";
 import { translations, type Language, type TranslationKey } from "./i18n";
+import type { Theme } from "./themes";
 
 const STORAGE_KEY = "memorder:settings";
+const THEMES: readonly Theme[] = ["original", "hacker", "cozy"];
 
 type Settings = {
   language: Language;
   volume: number;
+  theme: Theme;
 };
 
-const DEFAULT_SETTINGS: Settings = { language: "es", volume: 1 };
+const DEFAULT_SETTINGS: Settings = {
+  language: "es",
+  volume: 1,
+  theme: "original",
+};
 
 /**
  * Store externo mínimo respaldado por localStorage. Se lee de forma síncrona
@@ -40,6 +47,7 @@ function readFromStorage(): Settings {
         typeof parsed.volume === "number"
           ? Math.min(1, Math.max(0, parsed.volume))
           : 1,
+      theme: THEMES.includes(parsed.theme) ? parsed.theme : "original",
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -72,6 +80,7 @@ function updateSettings(patch: Partial<Settings>) {
 type SettingsContextValue = Settings & {
   setLanguage: (language: Language) => void;
   setVolume: (volume: number) => void;
+  setTheme: (theme: Theme) => void;
   t: (key: TranslationKey) => string;
 };
 
@@ -84,20 +93,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     getServerSnapshot,
   );
 
-  // Sincroniza sistemas externos (atributo lang del documento, volumen del
-  // Web Audio) cada vez que cambia el estado, incluida la primera carga real
-  // tras hidratar.
+  // Sincroniza sistemas externos (atributo lang/data-theme del documento,
+  // volumen del Web Audio) cada vez que cambia el estado, incluida la
+  // primera carga real tras hidratar.
   useEffect(() => {
     document.documentElement.lang = settings.language;
+    document.documentElement.dataset.theme = settings.theme;
     setMasterVolume(settings.volume);
-  }, [settings.language, settings.volume]);
+  }, [settings.language, settings.theme, settings.volume]);
 
   const setLanguage = (language: Language) => updateSettings({ language });
   const setVolume = (volume: number) => updateSettings({ volume });
+  const setTheme = (theme: Theme) => updateSettings({ theme });
   const t = (key: TranslationKey) => translations[settings.language][key];
 
   return (
-    <SettingsContext.Provider value={{ ...settings, setLanguage, setVolume, t }}>
+    <SettingsContext.Provider
+      value={{ ...settings, setLanguage, setVolume, setTheme, t }}
+    >
       {children}
     </SettingsContext.Provider>
   );

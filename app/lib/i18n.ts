@@ -46,6 +46,7 @@ const es = {
   "settings.title": "OPCIONES",
   "settings.volume": "Volumen",
   "settings.language": "Idioma",
+  "settings.theme": "Tema",
   "settings.close": "Cerrar",
 } as const;
 
@@ -85,6 +86,7 @@ const en: Record<keyof typeof es, string> = {
   "settings.title": "OPTIONS",
   "settings.volume": "Volume",
   "settings.language": "Language",
+  "settings.theme": "Theme",
   "settings.close": "Close",
 };
 
