@@ -416,9 +416,14 @@ export default function PlayPage() {
         setWordsCorrect((c) => c + 1);
         setCheckIndex((i) => i + 1);
 
-        // Tirada de comodín: una por ronda, al acertar la segunda palabra.
+        // Tirada de comodín: UNA por ronda, no una por palabra. Se hace al
+        // validar la última palabra, o sea con la ronda ya ganada: los
+        // porcentajes son la probabilidad de llevarte carta por ronda
+        // superada. La comprobación se queda en pausa mientras se enseña, y
+        // el bonus Perfect y la ronda siguiente esperan a CONTINUAR.
         // No se tira si ya hay uno en la mano, para no pisarlo.
-        if (checkIndex === 1 && rolledRoundRef.current !== round && !held) {
+        const lastWord = checkIndex === board.length - 1;
+        if (lastWord && rolledRoundRef.current !== round && !held) {
           rolledRoundRef.current = round;
           const dropped = rollJoker();
           if (dropped) {
