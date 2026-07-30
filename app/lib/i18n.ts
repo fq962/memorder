@@ -35,6 +35,17 @@ const es = {
   "play.speedChip": "RAPIDEZ",
   "play.ready": "¡LISTO! ✅",
 
+  "joker.found": "¡COMODÍN ENCONTRADO!",
+  "joker.continue": "CONTINUAR ▶",
+  "joker.rarity.bronze": "BRONCE",
+  "joker.rarity.epic": "ÉPICA",
+  "joker.rarity.legendary": "LEGENDARIA",
+  "joker.freeOrder.name": "Free Order",
+  "joker.freeOrder.description":
+    "En la próxima ronda, una palabra ya saldrá colocada en su posición correcta y marcada en verde.",
+  "joker.held": "Comodín guardado",
+  "joker.freeOrderTag": "GRATIS",
+
   "play.gameoverScore": "Puntuación",
   "play.gameoverRoundReached": "Ronda alcanzada",
   "play.gameoverWordsCorrect": "Palabras acertadas",
@@ -74,6 +85,17 @@ const en: Record<keyof typeof es, string> = {
   "play.wordsChip": "WORDS",
   "play.speedChip": "SPEED",
   "play.ready": "READY! ✅",
+
+  "joker.found": "JOKER FOUND!",
+  "joker.continue": "CONTINUE ▶",
+  "joker.rarity.bronze": "BRONZE",
+  "joker.rarity.epic": "EPIC",
+  "joker.rarity.legendary": "LEGENDARY",
+  "joker.freeOrder.name": "Free Order",
+  "joker.freeOrder.description":
+    "Next round, one word already starts in its correct spot, marked in green.",
+  "joker.held": "Joker in hand",
+  "joker.freeOrderTag": "FREE",
 
   "play.gameoverScore": "Score",
   "play.gameoverRoundReached": "Round reached",

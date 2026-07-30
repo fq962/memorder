@@ -57,6 +57,34 @@ export function shuffleDistinct(words: string[]): string[] {
 }
 
 /**
+ * Regalo del comodín Free Order: mueve `word` a su posición correcta dentro
+ * del tablero ya barajado, para que el jugador la encuentre puesta.
+ *
+ * Si al colocarla el tablero queda resuelto entero (pasa en rondas de 3
+ * palabras: dejar una en su sitio puede ordenar las otras dos), intercambia
+ * otras dos para que siga habiendo trabajo que hacer.
+ */
+export function placeCorrect(
+  board: string[],
+  solution: string[],
+  word: string,
+): string[] {
+  const target = solution.indexOf(word);
+  const from = board.indexOf(word);
+  if (target < 0 || from < 0) return [...board];
+
+  const out = move(board, from, target);
+  if (out.every((w, i) => w === solution[i])) {
+    const others = out.map((_, i) => i).filter((i) => i !== target);
+    if (others.length >= 2) {
+      const [a, b] = others;
+      [out[a], out[b]] = [out[b], out[a]];
+    }
+  }
+  return out;
+}
+
+/**
  * Tiempo de memorización: 1s por palabra + 0.15s por letra promedio.
  * Ajusta estas dos constantes para hacer el juego más o menos exigente.
  */

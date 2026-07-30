@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion, Reorder } from "framer-motion";
+import { AnimatePresence, motion, Reorder } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MemorizeTimer from "../components/MemorizeTimer";
+import JokerReveal from "../components/JokerReveal";
+import JokerCard from "../components/JokerCard";
+import { JOKERS, rollJoker, type JokerId } from "../lib/jokers";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
@@ -15,6 +18,7 @@ import {
   countMultiplier,
   move,
   perfectBonus,
+  placeCorrect,
   shuffleDistinct,
   speedMultiplier,
   wordPoints,
@@ -134,9 +138,19 @@ export default function PlayPage() {
   // Multiplicador de rapidez de la ronda: se congela al enviar el orden para
   // que los +N que se muestran al comprobar coincidan con lo que se suma.
   const [speed, setSpeed] = useState(1);
+  // Comodín encontrado que se está enseñando: mientras hay uno, la
+  // comprobación se queda en pausa y la carta ocupa la pantalla.
+  const [joker, setJoker] = useState<JokerId | null>(null);
+  // Comodín guardado en la cabecera, a la espera de gastarse en la ronda
+  // siguiente (el que se está enseñando pasa aquí al pulsar CONTINUAR).
+  const [held, setHeld] = useState<JokerId | null>(null);
+  // Palabra que Free Order ha dejado ya colocada en su sitio esta ronda.
+  const [hintWord, setHintWord] = useState<string | null>(null);
 
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
+  // Última ronda en la que ya se tiró por comodín: una tirada por ronda.
+  const rolledRoundRef = useRef(0);
   // Ronda actual en una ref para que el callback del cronómetro sea estable.
   const currentRef = useRef<Round | null>(null);
   // Instante en que empezó la fase de ordenar, para medir cuánto se tarda.
@@ -188,12 +202,22 @@ export default function PlayPage() {
     if (phase !== "showing" || !current) return;
     const revealMs = current.words.length * 70 + 500;
     const timer = setTimeout(() => {
-      setBoard(shuffleDistinct(current.words));
+      let dealt = shuffleDistinct(current.words);
+      let hint: string | null = null;
+
+      // Free Order guardado: una palabra al azar se reparte ya en su sitio.
+      if (held === "free-order") {
+        hint = current.words[Math.floor(Math.random() * current.words.length)];
+        dealt = placeCorrect(dealt, current.words, hint);
+      }
+
+      setBoard(dealt);
+      setHintWord(hint);
       arrangeStartRef.current = performance.now();
       setPhase("arrange");
     }, revealMs + SHOW_HOLD_MS);
     return () => clearTimeout(timer);
-  }, [phase, current]);
+  }, [phase, current, held]);
 
   // Cierra la fase de ordenar: congela el multiplicador de rapidez con el
   // tiempo empleado y pasa a comprobar. Estable (solo setters y refs) para no
@@ -201,6 +225,9 @@ export default function PlayPage() {
   const finishArrange = useCallback(() => {
     const elapsed = performance.now() - arrangeStartRef.current;
     setSpeed(speedMultiplier(elapsed, ARRANGE_MS));
+    // El comodín se gasta al enviar el orden de la ronda en que se aplicó.
+    setHeld(null);
+    setHintWord(null);
     setSelected(null);
     setCheckIndex(0);
     setWrongIndex(null);
@@ -222,6 +249,13 @@ export default function PlayPage() {
     if (selected !== index) setBoard((b) => move(b, selected, index));
     setSelected(null);
   }
+
+  // Al pulsar CONTINUAR la carta deja de ocupar la pantalla y se guarda en la
+  // cabecera, donde espera a gastarse en la ronda siguiente.
+  const dismissJoker = useCallback(() => {
+    if (joker) setHeld(joker);
+    setJoker(null);
+  }, [joker]);
 
   // Pequeño destello + tick sonoro sobre una casilla: feedback de "acción
   // completada" para los cambios que no vienen de un arrastre.
@@ -302,6 +336,8 @@ export default function PlayPage() {
   // Comprueba una palabra por paso, sumando sus puntos si es correcta.
   useEffect(() => {
     if (phase !== "checking" || !current) return;
+    // Hay un comodín en pantalla: la comprobación espera a que se cierre.
+    if (joker) return;
 
     // Ya hay un fallo: se deja ver un momento antes del Game Over.
     if (wrongIndex !== null) {
@@ -328,6 +364,17 @@ export default function PlayPage() {
         );
         setWordsCorrect((c) => c + 1);
         setCheckIndex((i) => i + 1);
+
+        // Tirada de comodín: una por ronda, al acertar la segunda palabra.
+        // No se tira si ya hay uno en la mano, para no pisarlo.
+        if (checkIndex === 1 && rolledRoundRef.current !== round && !held) {
+          rolledRoundRef.current = round;
+          const dropped = rollJoker();
+          if (dropped) {
+            playSound("correct-round", { rate: 0.85 });
+            setJoker(dropped);
+          }
+        }
       } else {
         // Fallo: suena game over y se sacude la pantalla.
         playSound("gameover");
@@ -337,12 +384,27 @@ export default function PlayPage() {
       }
     }, CHECK_STEP_MS);
     return () => clearTimeout(timer);
-  }, [phase, current, board, checkIndex, wrongIndex, round, speed, startRound]);
+  }, [
+    phase,
+    current,
+    board,
+    checkIndex,
+    wrongIndex,
+    round,
+    speed,
+    joker,
+    held,
+    startRound,
+  ]);
 
   function restart() {
     unlockAudio();
     playSound("game-start");
     recentRef.current = [];
+    rolledRoundRef.current = 0;
+    setJoker(null);
+    setHeld(null);
+    setHintWord(null);
     setSpeed(1);
     setScore(0);
     setWordsCorrect(0);
@@ -356,6 +418,13 @@ export default function PlayPage() {
         shake ? "shake-screen" : ""
       }`}
     >
+      {/* Hallazgo de comodín: se superpone a todo y pausa la comprobación. */}
+      <AnimatePresence>
+        {joker && (
+          <JokerReveal joker={joker} onDismiss={dismissJoker} />
+        )}
+      </AnimatePresence>
+
       <header className="flex items-center justify-between">
         <Link
           href="/"
@@ -364,13 +433,34 @@ export default function PlayPage() {
           ← memorder
         </Link>
         {phase !== "idle" && (
-          <p className="font-display flex items-center gap-5 text-sm">
+          <p className="font-display flex items-center gap-3 text-sm">
             <span className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-3 py-1.5">
               <span className="block skew-x-6 text-[10px]">
                 {t("play.round")} {round}
               </span>
             </span>
-            <span className="text-lg">
+
+            {/* Comodín guardado: se queda aquí hasta gastarse en la ronda
+                siguiente, para que se vea que hay uno en la mano. */}
+            {held && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.3, rotate: -18, y: -10 }}
+                animate={{ opacity: 1, scale: 1, rotate: -4, y: 0 }}
+                transition={{ type: "spring", stiffness: 320, damping: 17 }}
+                role="img"
+                aria-label={`${t("joker.held")}: ${t(JOKERS[held].nameKey)}`}
+                title={t(JOKERS[held].nameKey)}
+                className="inline-block"
+              >
+                <JokerCard
+                  joker={JOKERS[held]}
+                  width={26}
+                  className="rounded-[3px] ring-2 ring-[var(--holo-glow)] [filter:drop-shadow(0_0_10px_var(--holo-glow))]"
+                />
+              </motion.span>
+            )}
+
+            <span className="ml-2 text-lg">
               <CountUp value={score} />
             </span>
           </p>
@@ -525,6 +615,12 @@ export default function PlayPage() {
                 const justScored = checking && i === checkIndex - 1;
                 const isSelected = !checking && selected === i;
                 const isFlashing = !checking && flashIndex === i;
+                // Regalo del comodín: solo se marca mientras siga en su sitio,
+                // así que si el jugador la mueve el verde deja de mentir.
+                const isFreeOrder =
+                  !checking &&
+                  word === hintWord &&
+                  current.words[i] === word;
                 let tone = "bg-card-face";
                 let ink = "text-card-ink";
                 if (checking && i < checkIndex) {
@@ -534,6 +630,8 @@ export default function PlayPage() {
                   ink = "text-cream";
                 } else if (isSelected) {
                   tone = "bg-chip-gold";
+                } else if (isFreeOrder) {
+                  tone = "bg-chip-green";
                 }
 
                 return (
@@ -574,6 +672,10 @@ export default function PlayPage() {
                       isSelected
                         ? "ring-chip-gold shadow-[0_0_24px_rgba(255,203,43,0.55)] ring-4 ring-offset-2 ring-offset-felt"
                         : ""
+                    } ${
+                      isFreeOrder
+                        ? "shadow-[0_0_22px_rgba(61,220,132,0.5)]"
+                        : ""
                     }`}
                   >
                     <div className="flex items-center gap-5 px-6 py-4">
@@ -590,6 +692,12 @@ export default function PlayPage() {
                       )}
                       {checking && i === wrongIndex && (
                         <span className="text-2xl">💥</span>
+                      )}
+                      {/* Sello del comodín: esta ya está en su sitio. */}
+                      {isFreeOrder && (
+                        <span className="font-display text-card-ink flex shrink-0 items-center gap-1 text-[9px] tracking-widest">
+                          ✓ {t("joker.freeOrderTag")}
+                        </span>
                       )}
                     </div>
                   </Reorder.Item>
