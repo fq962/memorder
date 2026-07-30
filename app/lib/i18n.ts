@@ -33,6 +33,7 @@ const es = {
     "Teclado: ↑ ↓ para elegir, un número para soltarla, Enter para comprobar.",
   "play.wordsChip": "PALABRAS",
   "play.speedChip": "RAPIDEZ",
+  "play.jokerChip": "COMODÍN",
   "play.ready": "¡LISTO! ✅",
 
   "joker.found": "¡COMODÍN ENCONTRADO!",
@@ -44,7 +45,11 @@ const es = {
   "joker.freeOrder.description":
     "En la próxima ronda, una palabra ya saldrá colocada en su posición correcta y marcada en verde.",
   "joker.held": "Comodín guardado",
+  "joker.inUse": "Comodín en uso esta ronda",
   "joker.freeOrderTag": "GRATIS",
+  "joker.x15.name": "×1.5 Puntos",
+  "joker.x15.description":
+    "En la próxima ronda, todos los puntos que consigas se multiplican por 1.5.",
 
   "play.gameoverScore": "Puntuación",
   "play.gameoverRoundReached": "Ronda alcanzada",
@@ -84,6 +89,7 @@ const en: Record<keyof typeof es, string> = {
     "Keyboard: ↑ ↓ to select, a number to drop it, Enter to check.",
   "play.wordsChip": "WORDS",
   "play.speedChip": "SPEED",
+  "play.jokerChip": "JOKER",
   "play.ready": "READY! ✅",
 
   "joker.found": "JOKER FOUND!",
@@ -95,7 +101,11 @@ const en: Record<keyof typeof es, string> = {
   "joker.freeOrder.description":
     "Next round, one word already starts in its correct spot, marked in green.",
   "joker.held": "Joker in hand",
+  "joker.inUse": "Joker active this round",
   "joker.freeOrderTag": "FREE",
+  "joker.x15.name": "×1.5 Points",
+  "joker.x15.description":
+    "Next round, every point you score is multiplied by 1.5.",
 
   "play.gameoverScore": "Score",
   "play.gameoverRoundReached": "Round reached",

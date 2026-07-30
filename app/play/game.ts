@@ -162,19 +162,25 @@ export function speedMultiplier(elapsedMs: number, limitMs: number): number {
 }
 
 /**
- * Puntos de una sola palabra acertada, ya con los tres factores aplicados.
+ * Puntos de una sola palabra acertada, ya con los factores aplicados.
  * @param count  palabras que tenía la ronda.
  * @param speed  multiplicador devuelto por speedMultiplier.
+ * @param boost  multiplicador del comodín activo en la ronda (1 si no hay).
  */
-export function wordPoints(word: string, count: number, speed = 1): number {
+export function wordPoints(
+  word: string,
+  count: number,
+  speed = 1,
+  boost = 1,
+): number {
   const base = BASE_POINTS + lengthBonus(word);
-  return Math.round(base * countMultiplier(count) * speed);
+  return Math.round(base * countMultiplier(count) * speed * boost);
 }
 
 /** Bonus Perfect: 25% extra si toda la ronda es correcta. */
-export function perfectBonus(words: string[], speed = 1): number {
+export function perfectBonus(words: string[], speed = 1, boost = 1): number {
   const total = words.reduce(
-    (sum, w) => sum + wordPoints(w, words.length, speed),
+    (sum, w) => sum + wordPoints(w, words.length, speed, boost),
     0,
   );
   return Math.round(total * 0.25);

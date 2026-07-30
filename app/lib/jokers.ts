@@ -9,7 +9,7 @@ export const CARD_BACK = "/cards/back.webp";
 /** Proporción de las cartas recortadas (ancho / alto). */
 export const CARD_ASPECT = 326 / 446;
 
-export type JokerId = "free-order";
+export type JokerId = "free-order" | "x1-5";
 
 /**
  * Rareza del comodín. Decide el color de la lámina holográfica y del halo:
@@ -60,7 +60,17 @@ export const JOKERS: Record<JokerId, Joker> = {
     nameKey: "joker.freeOrder.name",
     descriptionKey: "joker.freeOrder.description",
   },
+  "x1-5": {
+    id: "x1-5",
+    image: "/cards/x1-5.webp",
+    rarity: "bronze",
+    nameKey: "joker.x15.name",
+    descriptionKey: "joker.x15.description",
+  },
 };
+
+/** Multiplicador de puntos que aplica el comodín ×1.5 a su ronda. */
+export const X15_BOOST = 1.5;
 
 /**
  * Tirada de una ronda: devuelve el comodín que aparece, o null si esta vez no
