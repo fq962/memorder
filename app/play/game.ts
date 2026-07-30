@@ -102,6 +102,25 @@ export function placeCorrect(
 }
 
 /**
+ * Devuelve el tablero con `word` de vuelta en la casilla `index`, sin tocar
+ * el orden relativo de las demás. Es lo que mantiene clavada la palabra que
+ * regala Free Order pase lo que pase con el resto.
+ */
+export function pinAt(
+  board: string[],
+  word: string | null,
+  index: number,
+): string[] {
+  if (!word || index < 0) return board;
+  const from = board.indexOf(word);
+  if (from < 0 || from === index) return board;
+
+  const out = board.filter((w) => w !== word);
+  out.splice(index, 0, word);
+  return out;
+}
+
+/**
  * Tiempo de memorización: 1s por palabra + 0.15s por letra promedio.
  * Ajusta estas dos constantes para hacer el juego más o menos exigente.
  */

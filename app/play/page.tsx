@@ -19,6 +19,7 @@ import {
   countMultiplier,
   move,
   perfectBonus,
+  pinAt,
   placeCorrect,
   shuffleDistinct,
   speedMultiplier,
@@ -210,9 +211,11 @@ export default function PlayPage() {
   const lockedIndex =
     hintWord && current ? current.words.indexOf(hintWord) : -1;
   const lockedIndexRef = useRef(lockedIndex);
+  const hintWordRef = useRef(hintWord);
   useEffect(() => {
     lockedIndexRef.current = lockedIndex;
-  }, [lockedIndex]);
+    hintWordRef.current = hintWord;
+  }, [lockedIndex, hintWord]);
 
   // Cuánto ocupan las cartas esta ronda: cuantas más palabras, más apretadas.
   const size = densityFor(current?.words.length ?? 0);
@@ -314,24 +317,53 @@ export default function PlayPage() {
       playTick(660);
       return;
     }
-    if (selected !== index) setBoard((b) => move(b, selected, index));
+    // El intercambio puede correr a la regalada de su casilla: se re-clava.
+    if (selected !== index) {
+      setBoard((b) => pinAt(move(b, selected, index), hintWord, lockedIndex));
+    }
     setSelected(null);
   }
 
   /**
-   * Reordenación por arrastre. Free Order clava una casilla, pero arrastrar
-   * otra carta por encima igual desplazaría a la regalada: aquí se devuelve a
-   * su sitio, de modo que el resto se reacomoda a su alrededor.
+   * Reordenación por arrastre con la casilla de Free Order clavada.
+   *
+   * Framer propone los cambios de uno en uno: para pasar una carta al otro
+   * lado de la clavada, primero propone intercambiarla CON la clavada. Si ahí
+   * nos limitáramos a devolver la regalada a su sitio, el intercambio se
+   * deshace y la carta se queda atascada sin poder cruzar. Por eso ese caso
+   * se traduce a lo que el jugador quiere: la carta salta al otro lado y las
+   * demás se corren, con la regalada quieta en su casilla.
    */
   function handleReorder(next: string[]) {
-    if (hintWord && lockedIndex >= 0) {
-      const from = next.indexOf(hintWord);
-      if (from !== lockedIndex) {
-        setBoard(move(next, from, lockedIndex));
+    if (!hintWord || lockedIndex < 0) {
+      setBoard(next);
+      return;
+    }
+    if (next.indexOf(hintWord) === lockedIndex) {
+      setBoard(next);
+      return;
+    }
+
+    const others = next.filter((w) => w !== hintWord);
+    const before = board.filter((w) => w !== hintWord);
+    // Si el resto no ha cambiado de orden, lo único que propone framer es el
+    // intercambio con la clavada: es un intento de cruce.
+    const crossing = others.every((w, i) => w === before[i]);
+
+    if (crossing) {
+      // La regalada se fue hacia abajo => quien la empujó subía, y al revés.
+      const step = next.indexOf(hintWord) > lockedIndex ? -1 : 1;
+      const from = others.indexOf(next[lockedIndex]);
+      const to = Math.min(others.length - 1, Math.max(0, from + step));
+      if (from >= 0 && to !== from) {
+        const jumped = move(others, from, to);
+        jumped.splice(lockedIndex, 0, hintWord);
+        setBoard(jumped);
         return;
       }
     }
-    setBoard(next);
+
+    setBoard(pinAt(next, hintWord, lockedIndex));
   }
 
   // Al pulsar CONTINUAR la carta deja de ocupar la pantalla y se guarda en la
@@ -352,18 +384,25 @@ export default function PlayPage() {
   // Coloca la palabra seleccionada en la posición `target` (0-indexed).
   const moveSelectedTo = useCallback(
     (target: number) => {
+      const board = boardRef.current;
       const from = selectedRef.current;
-      const len = boardRef.current.length;
+      const len = board.length;
       if (from === null || target < 0 || target >= len) return;
       // Ni se saca la palabra clavada ni se le quita el sitio.
       const locked = lockedIndexRef.current;
       if (from === locked || target === locked) return;
-      if (target !== from) setBoard((b) => move(b, from, target));
+
+      // Al colocar por encima o por debajo de la casilla clavada, la regalada
+      // se correría: se re-clava y la palabra movida acaba donde toque.
+      const word = board[from];
+      const next = pinAt(move(board, from, target), hintWordRef.current, locked);
+      const landed = next.indexOf(word);
+      setBoard(next);
       // A diferencia del mouse, el teclado deja la palabra seleccionada en su
       // nueva casilla para poder seguir ajustándola sin volver a elegirla.
-      setSelected(target);
-      playTick(target > from ? 990 : 740);
-      flash(target);
+      setSelected(landed);
+      playTick(landed > from ? 990 : 740);
+      flash(landed);
     },
     [flash],
   );
