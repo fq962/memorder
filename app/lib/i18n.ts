@@ -15,6 +15,21 @@ const es = {
   "auth.signOut": "Cerrar sesión",
   "auth.notConfigured": "Supabase no configurado",
 
+  "profile.title": "Tu perfil",
+  "profile.username": "Nombre de usuario",
+  "profile.usernamePlaceholder": "tu_nombre",
+  "profile.save": "Guardar",
+  "profile.saving": "Guardando…",
+  "profile.saved": "¡Listo!",
+  "profile.usernameTaken": "Ese nombre ya está en uso.",
+  "profile.usernameInvalid":
+    "Usa entre 3 y 20 caracteres: letras, números o guion bajo.",
+  "profile.genericError": "No se pudo guardar. Probá de nuevo.",
+  "profile.cooldownNotice":
+    "Solo podés cambiarlo una vez cada 3 meses. Si lo cambiás ahora, no podrás volver a hacerlo hasta el",
+  "profile.cooldownActive": "Ya cambiaste tu nombre hace poco. Podrás volver a hacerlo el",
+  "profile.savedUntil": "Listo. No podrás cambiarlo de nuevo hasta el",
+
   "home.tagline": "memoriza · o llora",
   "home.descriptionPre":
     "Memoriza el orden de las palabras y reconstrúyelo. Un error y",
@@ -87,6 +102,21 @@ const en: Record<keyof typeof es, string> = {
   "auth.signIn": "Sign in with Google",
   "auth.signOut": "Sign out",
   "auth.notConfigured": "Supabase not configured",
+
+  "profile.title": "Your profile",
+  "profile.username": "Username",
+  "profile.usernamePlaceholder": "your_name",
+  "profile.save": "Save",
+  "profile.saving": "Saving…",
+  "profile.saved": "Done!",
+  "profile.usernameTaken": "That name is already taken.",
+  "profile.usernameInvalid":
+    "Use 3 to 20 characters: letters, numbers, or underscore.",
+  "profile.genericError": "Couldn't save it. Try again.",
+  "profile.cooldownNotice":
+    "You can only change it once every 3 months. If you change it now, you won't be able to again until",
+  "profile.cooldownActive": "You changed your name recently. You'll be able to again on",
+  "profile.savedUntil": "Done. You won't be able to change it again until",
 
   "home.tagline": "memorize · or cry",
   "home.descriptionPre":

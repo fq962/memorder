@@ -3,6 +3,7 @@ import { Press_Start_2P, Pixelify_Sans } from "next/font/google";
 import SettingsMenu from "./components/SettingsMenu";
 import { SettingsProvider } from "./lib/settings";
 import { AuthProvider } from "./lib/auth";
+import { ProfileProvider } from "./lib/profile";
 import "./globals.css";
 
 // Fuente de titulares / números: pixel puro, estilo arcade.
@@ -46,8 +47,10 @@ export default function RootLayout({
         <div aria-hidden className="scanlines pointer-events-none fixed inset-0 -z-10" />
         <SettingsProvider>
           <AuthProvider>
-            <SettingsMenu />
-            {children}
+            <ProfileProvider>
+              <SettingsMenu />
+              {children}
+            </ProfileProvider>
           </AuthProvider>
         </SettingsProvider>
       </body>
