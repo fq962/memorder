@@ -14,6 +14,7 @@ import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
 import { setPlaying } from "../lib/hud";
 import { useSettings } from "../lib/settings";
 import { ICONS } from "../lib/icons";
+import { createRng, newSeed, normalizeSeed, type Rng } from "../lib/rng";
 import {
   buildRound,
   countMultiplier,
@@ -152,6 +153,156 @@ function CountUp({ value }: { value: number }) {
   );
 }
 
+/** Milisegundos que el seed se queda diciendo "copiado" tras pulsarlo. */
+const SEED_COPIED_MS = 1600;
+
+/**
+ * Seed de la partida en el Game Over: se pulsa y se copia al portapapeles,
+ * para poder repetir exactamente la misma run o mandársela a alguien.
+ */
+function SeedChip({ seed }: { seed: string }) {
+  const { t } = useSettings();
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(seed);
+    } catch {
+      // Sin permiso o fuera de contexto seguro (http): se selecciona el
+      // texto para que se pueda copiar a mano en vez de no hacer nada.
+      const node = document.getElementById("seed-value");
+      if (node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+      return;
+    }
+    playTick(880);
+    setCopied(true);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), SEED_COPIED_MS);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={t("play.gameoverSeedHint")}
+      className="card-base bg-card-face/95 text-card-ink group flex max-w-full flex-col items-center gap-1 px-6 py-3 transition-transform hover:scale-105 active:scale-95"
+    >
+      <span className="font-sans text-[11px] opacity-60">
+        {t("play.gameoverSeed")}
+      </span>
+      <span
+        id="seed-value"
+        className="font-display text-chip-purple text-lg tracking-[0.18em] tabular-nums select-all"
+      >
+        {seed}
+      </span>
+      <span
+        aria-live="polite"
+        className={`font-display text-[9px] tracking-widest ${
+          copied ? "text-chip-green" : "opacity-45"
+        }`}
+      >
+        {copied ? t("play.gameoverSeedCopied") : t("play.gameoverSeedHint")}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Entrada de semilla en la pantalla inicial: se pega un código y la partida
+ * sale idéntica a la de quien lo compartió.
+ *
+ * Empieza plegada tras un botón para no competir con COMENZAR: jugar una
+ * semilla concreta es lo raro, no lo normal.
+ */
+function SeedEntry({ onPlay }: { onPlay: (seed: string) => void }) {
+  const { t } = useSettings();
+  const [open, setOpen] = useState(false);
+  const [raw, setRaw] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Lo que se jugará de verdad: el seed en su forma canónica, o null si lo
+  // escrito no tiene ni un carácter aprovechable.
+  const seed = normalizeSeed(raw);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="font-display text-cream/45 hover:text-chip-purple text-[10px] tracking-widest transition-colors"
+      >
+        {t("play.seedEntryToggle")}
+      </button>
+    );
+  }
+
+  return (
+    <motion.form
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (seed) onPlay(seed);
+      }}
+      className="card-base bg-card-face/95 text-card-ink flex w-full max-w-sm flex-col gap-2 px-5 py-4"
+    >
+      <label
+        htmlFor="seed-input"
+        className="font-sans text-[11px] opacity-60"
+      >
+        {t("play.seedEntryLabel")}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          id="seed-input"
+          ref={inputRef}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          placeholder="MWAX-CRK7"
+          autoComplete="off"
+          spellCheck={false}
+          maxLength={40}
+          className="font-display text-card-ink placeholder:text-card-ink/25 min-w-0 flex-1 rounded-md bg-black/10 px-3 py-2 text-base tracking-[0.14em] uppercase outline-none focus:bg-black/15"
+        />
+        <button
+          type="submit"
+          disabled={!seed}
+          className="card-base bg-chip-green text-card-ink -skew-x-6 px-4 py-2 transition-transform hover:scale-105 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
+        >
+          <span className="font-display block skew-x-6 text-xs">
+            {t("play.seedEntryPlay")}
+          </span>
+        </button>
+      </div>
+      {/* El seed se juega en su forma canónica: se enseña para que no haya
+          sorpresas con lo que se pegó (minúsculas, espacios, letras fuera
+          del alfabeto). */}
+      <p className="font-sans text-[10px] opacity-55">
+        {raw.trim() === ""
+          ? t("play.seedEntryHint")
+          : seed
+            ? `${t("play.seedEntryWillPlay")} ${seed}`
+            : t("play.seedEntryInvalid")}
+      </p>
+    </motion.form>
+  );
+}
+
 export default function PlayPage() {
   const { language, t } = useSettings();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -182,10 +333,17 @@ export default function PlayPage() {
   const [applied, setApplied] = useState<JokerId | null>(null);
   // Palabra que Free Order ha dejado ya colocada en su sitio esta ronda.
   const [hintWord, setHintWord] = useState<string | null>(null);
+  // Seed de la partida en curso: se enseña en el Game Over para poder
+  // repetirla. null antes de la primera partida.
+  const [seed, setSeed] = useState<string | null>(null);
 
   /** Multiplicador de puntos de la ronda: solo lo sube el comodín ×1.5. */
   const boost = applied === "x1-5" ? X15_BOOST : 1;
 
+  // Dado de la partida, creado a partir del seed al empezar. Vive en una ref
+  // porque lo consume la lógica de juego (efectos y callbacks), no el render:
+  // cada tirada muta su estado interno y eso no debe repintar nada.
+  const rngRef = useRef<Rng | null>(null);
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
   // Última ronda en la que ya se tiró por comodín: una tirada por ronda.
@@ -246,7 +404,15 @@ export default function PlayPage() {
 
   const startRound = useCallback(
     (next: number) => {
-      const generated = buildRound(next, recentRef.current.flat(), language);
+      const rng = rngRef.current;
+      if (!rng) return;
+
+      const generated = buildRound(
+        rng,
+        next,
+        recentRef.current.flat(),
+        language,
+      );
       recentRef.current = [generated.words, ...recentRef.current].slice(0, 5);
       currentRef.current = generated;
       setCurrent(generated);
@@ -266,16 +432,19 @@ export default function PlayPage() {
   // SHOW_HOLD_MS después de que salga la última; luego se baraja y a ordenar.
   useEffect(() => {
     if (phase !== "showing" || !current) return;
+    const rng = rngRef.current;
+    if (!rng) return;
+
     const revealMs = current.words.length * 70 + 500;
     const timer = setTimeout(() => {
-      let dealt = shuffleDistinct(current.words);
+      let dealt = shuffleDistinct(rng, current.words);
       let hint: string | null = null;
 
       // El comodín guardado se gasta aquí, al repartir.
       if (held === "free-order") {
         // Una palabra al azar se reparte ya en su sitio.
-        hint = current.words[Math.floor(Math.random() * current.words.length)];
-        dealt = placeCorrect(dealt, current.words, hint);
+        hint = rng.pick(current.words) ?? null;
+        if (hint) dealt = placeCorrect(dealt, current.words, hint);
       }
       if (held) {
         setApplied(held);
@@ -506,9 +675,14 @@ export default function PlayPage() {
         // el bonus Perfect y la ronda siguiente esperan a CONTINUAR.
         // No se tira si ya hay uno en la mano, para no pisarlo.
         const lastWord = checkIndex === board.length - 1;
-        if (lastWord && rolledRoundRef.current !== round && !held) {
+        if (
+          lastWord &&
+          rolledRoundRef.current !== round &&
+          !held &&
+          rngRef.current
+        ) {
           rolledRoundRef.current = round;
-          const dropped = rollJoker();
+          const dropped = rollJoker(rngRef.current);
           if (dropped) {
             playSound("correct-round", { rate: 0.85 });
             setJoker(dropped);
@@ -537,9 +711,26 @@ export default function PlayPage() {
     startRound,
   ]);
 
-  function restart() {
+  /**
+   * Arranca una partida: crea el dado que decidirá palabras, reparto y
+   * comodines de toda la run.
+   *
+   * @param requested  semilla ya normalizada para repetir una partida
+   *                   concreta; sin ella se genera una nueva.
+   *
+   * Ojo: el seed reproduce las TIRADAS, no los ajustes. La misma semilla en
+   * otro idioma usa otro banco de palabras, y los trucos (palabras por ronda,
+   * probabilidad de comodín) también cambian la partida resultante.
+   *
+   * El seed nuevo se genera aquí, en respuesta a un click, y no durante el
+   * render: usa entropía real y en el render rompería la hidratación.
+   */
+  function startGame(requested?: string) {
     unlockAudio();
     playSound("game-start");
+    const fresh = requested ?? newSeed();
+    rngRef.current = createRng(fresh);
+    setSeed(fresh);
     recentRef.current = [];
     rolledRoundRef.current = 0;
     setJoker(null);
@@ -652,17 +843,15 @@ export default function PlayPage() {
           </p>
           <button
             type="button"
-            onClick={() => {
-              unlockAudio();
-              playSound("game-start");
-              startRound(1);
-            }}
+            onClick={() => startGame()}
             className="group card-base bg-chip-green animate-bob text-card-ink -rotate-2 px-10 py-5 transition-transform duration-150 hover:-rotate-1 hover:scale-110 hover:brightness-110 active:scale-95"
           >
             <span className="font-display block text-2xl [text-shadow:2px_2px_0_rgba(0,0,0,0.35)]">
               {t("play.start")}
             </span>
           </button>
+
+          <SeedEntry onPlay={startGame} />
         </motion.section>
       )}
 
@@ -959,16 +1148,31 @@ export default function PlayPage() {
             </span>
           </p>
 
+          {seed && <SeedChip seed={seed} />}
+
           <div className="flex flex-wrap justify-center gap-4">
             <button
               type="button"
-              onClick={restart}
+              onClick={() => startGame()}
               className="card-base bg-chip-green text-card-ink -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
             >
               <span className="font-display block skew-x-6 text-sm">
                 {t("play.gameoverRetry")}
               </span>
             </button>
+            {/* Revancha con la MISMA semilla: mismas palabras y mismas cartas,
+                para volver a intentar la run que se acaba de perder. */}
+            {seed && (
+              <button
+                type="button"
+                onClick={() => startGame(seed)}
+                className="card-base bg-chip-gold text-card-ink -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"
+              >
+                <span className="font-display block skew-x-6 text-sm">
+                  {t("play.gameoverSameSeed")}
+                </span>
+              </button>
+            )}
             <Link
               href="/"
               className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-7 py-3 transition-transform hover:scale-110 active:scale-95"

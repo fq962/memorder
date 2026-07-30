@@ -2,6 +2,7 @@
 // claves de i18n de su nombre y su descripción, para que la pantalla de
 // hallazgo sirva igual para todos sin tocar el componente.
 import type { TranslationKey } from "./i18n";
+import type { Rng } from "./rng";
 
 /** Reverso común a todas las cartas: la cara con la que empieza el giro. */
 export const CARD_BACK = "/cards/back.webp";
@@ -113,9 +114,12 @@ export const X15_BOOST = 1.5;
  * Si la rareza que toca todavía no tiene cartas (hoy solo hay épicas), la
  * tirada se queda sin premio en vez de repartir otra rareza: así el 20% de la
  * épica sigue siendo un 20% y no se infla con las tiradas de bronce.
+ *
+ * @param rng  el dado de la partida (ver app/lib/rng.ts): las cartas que
+ *             caen son parte de lo que reproduce el seed.
  */
-export function rollJoker(): JokerId | null {
-  const roll = Math.random();
+export function rollJoker(rng: Rng): JokerId | null {
+  const roll = rng.float();
   let acc = 0;
 
   for (const rarity of ROLL_ORDER) {
@@ -124,7 +128,7 @@ export function rollJoker(): JokerId | null {
 
     const pool = Object.values(JOKERS).filter((j) => j.rarity === rarity);
     if (pool.length === 0) return null;
-    return pool[Math.floor(Math.random() * pool.length)].id;
+    return rng.pick(pool)!.id;
   }
 
   return null;
