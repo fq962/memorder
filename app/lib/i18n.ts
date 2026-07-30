@@ -11,6 +11,10 @@ export const LANGUAGE_OPTIONS: { code: Language; label: string }[] = [
 ];
 
 const es = {
+  "auth.signIn": "Iniciar sesión con Google",
+  "auth.signOut": "Cerrar sesión",
+  "auth.notConfigured": "Supabase no configurado",
+
   "home.tagline": "memoriza · o llora",
   "home.descriptionPre":
     "Memoriza el orden de las palabras y reconstrúyelo. Un error y",
@@ -80,6 +84,10 @@ const es = {
 } as const;
 
 const en: Record<keyof typeof es, string> = {
+  "auth.signIn": "Sign in with Google",
+  "auth.signOut": "Sign out",
+  "auth.notConfigured": "Supabase not configured",
+
   "home.tagline": "memorize · or cry",
   "home.descriptionPre":
     "Memorize the order of the words and rebuild it. One mistake and",

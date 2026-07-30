@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Press_Start_2P, Pixelify_Sans } from "next/font/google";
 import SettingsMenu from "./components/SettingsMenu";
 import { SettingsProvider } from "./lib/settings";
+import { AuthProvider } from "./lib/auth";
 import "./globals.css";
 
 // Fuente de titulares / números: pixel puro, estilo arcade.
@@ -44,8 +45,10 @@ export default function RootLayout({
         {/* Scanlines CRT sutiles sobre toda la pantalla. */}
         <div aria-hidden className="scanlines pointer-events-none fixed inset-0 -z-10" />
         <SettingsProvider>
-          <SettingsMenu />
-          {children}
+          <AuthProvider>
+            <SettingsMenu />
+            {children}
+          </AuthProvider>
         </SettingsProvider>
       </body>
     </html>
