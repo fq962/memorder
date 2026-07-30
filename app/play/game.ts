@@ -8,8 +8,25 @@ export type Round = {
   totalMs: number;
 };
 
+/** Límites del número fijo de palabras que se puede forzar desde ajustes. */
+export const MIN_FIXED_WORDS = 3;
+export const MAX_FIXED_WORDS = 10;
+
+// Cantidad fija de palabras por ronda, o null para seguir la progresión
+// normal. Igual que las probabilidades de comodín: lo cambia el panel de
+// trucos y se lee desde la lógica de juego, fuera de React.
+let fixedWordCount: number | null = null;
+
+export function setFixedWordCount(count: number | null) {
+  fixedWordCount =
+    count === null
+      ? null
+      : Math.min(MAX_FIXED_WORDS, Math.max(MIN_FIXED_WORDS, Math.round(count)));
+}
+
 /** Palabras por ronda según la tabla de progresión. */
 export function wordCountFor(round: number): number {
+  if (fixedWordCount !== null) return fixedWordCount;
   const table = [3, 4, 5, 5, 6, 7, 8, 9, 10];
   if (round <= table.length) return table[round - 1];
   // A partir de la ronda 10: una palabra más cada dos rondas, máximo 15.

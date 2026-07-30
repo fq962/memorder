@@ -16,6 +16,11 @@ import {
   setDropChance as applyDropChance,
   type Rarity,
 } from "./jokers";
+import {
+  MAX_FIXED_WORDS,
+  MIN_FIXED_WORDS,
+  setFixedWordCount as applyFixedWords,
+} from "../play/game";
 
 const STORAGE_KEY = "memorder:settings";
 const THEMES: readonly Theme[] = ["original", "hacker", "cozy"];
@@ -31,6 +36,8 @@ type Settings = {
   cheats: boolean;
   /** Probabilidad de cada rareza (0-1), ajustable con el código. */
   dropChance: Record<Rarity, number>;
+  /** Palabras fijas por ronda, o null para la progresión normal. */
+  fixedWords: number | null;
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -39,7 +46,16 @@ const DEFAULT_SETTINGS: Settings = {
   theme: "original",
   cheats: false,
   dropChance: { ...DEFAULT_DROP_CHANCE },
+  fixedWords: null,
 };
+
+/** Sanea las palabras fijas guardadas: null o un entero dentro del rango. */
+function readFixedWords(raw: unknown): number | null {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
+  const value = Math.round(raw);
+  if (value < MIN_FIXED_WORDS || value > MAX_FIXED_WORDS) return null;
+  return value;
+}
 
 /** Sanea la tabla guardada: cada rareza, un número entre 0 y 1. */
 function readDropChance(raw: unknown): Record<Rarity, number> {
@@ -78,6 +94,7 @@ function readFromStorage(): Settings {
       theme: THEMES.includes(parsed.theme) ? parsed.theme : "original",
       cheats: parsed.cheats === true,
       dropChance: readDropChance(parsed.dropChance),
+      fixedWords: readFixedWords(parsed.fixedWords),
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -114,7 +131,8 @@ type SettingsContextValue = Settings & {
   /** Comprueba el código; devuelve si era correcto. */
   unlockCheats: (code: string) => boolean;
   setRarityChance: (rarity: Rarity, chance: number) => void;
-  /** Devuelve las probabilidades a fábrica y vuelve a pedir el código. */
+  setFixedWords: (count: number | null) => void;
+  /** Devuelve los ajustes de partida a fábrica y vuelve a pedir el código. */
   resetCheats: () => void;
   t: (key: TranslationKey) => string;
 };
@@ -136,11 +154,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = settings.theme;
     setMasterVolume(settings.volume);
     applyDropChance(settings.dropChance);
+    applyFixedWords(settings.fixedWords);
   }, [
     settings.language,
     settings.theme,
     settings.volume,
     settings.dropChance,
+    settings.fixedWords,
   ]);
 
   const setLanguage = (language: Language) => updateSettings({ language });
@@ -161,8 +181,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       },
     });
 
+  const setFixedWords = (count: number | null) =>
+    updateSettings({
+      fixedWords:
+        count === null
+          ? null
+          : Math.min(MAX_FIXED_WORDS, Math.max(MIN_FIXED_WORDS, count)),
+    });
+
   const resetCheats = () =>
-    updateSettings({ dropChance: { ...DEFAULT_DROP_CHANCE }, cheats: false });
+    updateSettings({
+      dropChance: { ...DEFAULT_DROP_CHANCE },
+      fixedWords: null,
+      cheats: false,
+    });
 
   const t = (key: TranslationKey) => translations[settings.language][key];
 
@@ -175,6 +207,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setTheme,
         unlockCheats,
         setRarityChance,
+        setFixedWords,
         resetCheats,
         t,
       }}

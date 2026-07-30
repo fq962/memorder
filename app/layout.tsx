@@ -32,9 +32,12 @@ export default function RootLayout({
       lang="es"
       className={`${pressStart.variable} ${pixelSans.variable} h-full antialiased`}
     >
+      {/* overflow-x-clip y no -hidden: "hidden" convertiría el body en
+          contenedor de scroll (y con él, en ancla de los posicionamientos de
+          dentro). "clip" recorta el desborde igual sin crear scrollport. */}
       <body
         suppressHydrationWarning
-        className="bg-felt text-cream relative flex min-h-full flex-col overflow-x-hidden font-sans"
+        className="bg-felt text-cream relative flex min-h-full flex-col overflow-x-clip font-sans"
       >
         {/* Vignette + felt de fondo, detrás de todo. */}
         <div aria-hidden className="bg-felt-glow pointer-events-none fixed inset-0 -z-20" />

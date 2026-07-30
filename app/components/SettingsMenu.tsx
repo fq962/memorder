@@ -9,6 +9,8 @@ import { useSettings } from "../lib/settings";
 import { playTick } from "../lib/sounds";
 import { THEME_OPTIONS } from "../lib/themes";
 import { effectiveShares, RARITY_LABEL_KEY, ROLL_ORDER } from "../lib/jokers";
+import { MAX_FIXED_WORDS, MIN_FIXED_WORDS } from "../play/game";
+import { useIsPlaying } from "../lib/hud";
 import {
   DicesIcon,
   GlobeIcon,
@@ -34,16 +36,20 @@ export default function SettingsMenu() {
     theme,
     cheats,
     dropChance,
+    fixedWords,
     setLanguage,
     setVolume,
     setTheme,
     unlockCheats,
     setRarityChance,
+    setFixedWords,
     resetCheats,
     t,
   } = useSettings();
 
   const shares = effectiveShares(dropChance);
+  // Durante la partida el engranaje estorba (y en móvil pisa la cabecera).
+  const playing = useIsPlaying();
 
   function submitCode() {
     if (unlockCheats(code)) {
@@ -58,17 +64,19 @@ export default function SettingsMenu() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="card-base bg-chip-red text-cream fixed top-4 right-4 z-40 -skew-x-6 px-5 py-3 transition-transform hover:scale-110 hover:brightness-110 active:scale-95"
-      >
-        <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
-          {/* <Image src={ICONS.settings} alt="" width={28} height={27} /> */}
-          <SettingsIcon className="w-6 h-6 text-white" />
-          {t("settings.open")}
-        </span>
-      </button>
+      {!playing && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="card-base bg-chip-red text-cream fixed top-4 right-4 z-40 -skew-x-6 px-5 py-3 transition-transform hover:scale-110 hover:brightness-110 active:scale-95"
+        >
+          <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
+            {/* <Image src={ICONS.settings} alt="" width={28} height={27} /> */}
+            <SettingsIcon className="h-6 w-6 text-white" />
+            {t("settings.open")}
+          </span>
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -290,6 +298,45 @@ export default function SettingsMenu() {
                   <p className="font-sans text-card-ink/45 text-[10px] leading-snug">
                     {t("settings.dropsHint")}
                   </p>
+
+                  {/* Palabras por ronda: AUTO sigue la progresión; mover el
+                      deslizador fija la cantidad. */}
+                  <div className="border-card-ink/10 mt-2 flex flex-col gap-1.5 border-t pt-4">
+                    <label className="font-display flex items-center justify-between text-[9px] tracking-wide">
+                      <span>{t("settings.words")}</span>
+                      <span className="text-card-ink/60 tabular-nums">
+                        {fixedWords ?? t("settings.wordsAuto")}
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFixedWords(null);
+                          playTick(600);
+                        }}
+                        className={`font-display shrink-0 rounded-md border px-2 py-1 text-[9px] tracking-wide transition-colors ${
+                          fixedWords === null
+                            ? "border-chip-gold bg-chip-gold/20 text-card-ink"
+                            : "border-card-ink/25 text-card-ink/60"
+                        }`}
+                      >
+                        {t("settings.wordsAuto")}
+                      </button>
+                      <input
+                        type="range"
+                        min={MIN_FIXED_WORDS}
+                        max={MAX_FIXED_WORDS}
+                        value={fixedWords ?? MIN_FIXED_WORDS}
+                        onChange={(e) => setFixedWords(Number(e.target.value))}
+                        aria-label={t("settings.words")}
+                        className="accent-chip-purple h-2 w-full cursor-pointer"
+                      />
+                    </div>
+                    <p className="font-sans text-card-ink/45 text-[10px] leading-snug">
+                      {t("settings.wordsHint")}
+                    </p>
+                  </div>
                 </motion.div>
               )}
             </motion.div>

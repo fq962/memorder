@@ -73,6 +73,10 @@ const es = {
     "Se comprueban de la más rara a la más común: si suman más de 100%, las últimas se quedan con lo que sobra.",
   "settings.dropsNone": "Sin comodín",
   "settings.dropsReset": "Restaurar",
+  "settings.words": "Palabras por ronda",
+  "settings.wordsAuto": "AUTO",
+  "settings.wordsHint":
+    "AUTO sigue la progresión normal. Fijo se aplica desde la ronda siguiente.",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -138,6 +142,10 @@ const en: Record<keyof typeof es, string> = {
     "Checked from rarest to most common: if they add up to over 100%, the last ones only get what's left.",
   "settings.dropsNone": "No joker",
   "settings.dropsReset": "Reset",
+  "settings.words": "Words per round",
+  "settings.wordsAuto": "AUTO",
+  "settings.wordsHint":
+    "AUTO follows the normal progression. A fixed count kicks in from the next round.",
 };
 
 export type TranslationKey = keyof typeof es;

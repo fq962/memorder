@@ -11,6 +11,7 @@ import { JOKERS, rollJoker, X15_BOOST, type JokerId } from "../lib/jokers";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
+import { setPlaying } from "../lib/hud";
 import { useSettings } from "../lib/settings";
 import { ICONS } from "../lib/icons";
 import {
@@ -40,6 +41,37 @@ const ARRANGE_MS = 30000;
 function tiltFor(i: number): string {
   const seq = [-3, 2, -1.5, 3, -2.5, 1.5, -2, 2.5];
   return `${seq[i % seq.length]}deg`;
+}
+
+/**
+ * Tamaño de las filas según cuántas palabras tenga la ronda. Con 10-15 la
+ * lista no cabe en un móvil, así que las cartas se aprietan en vez de dejar
+ * que la ronda se salga de la pantalla. Se usa igual al memorizar y al
+ * ordenar para que las cartas no cambien de tamaño entre fases.
+ */
+function densityFor(count: number) {
+  if (count <= 5) {
+    return {
+      list: "gap-3",
+      row: "gap-4 px-5 py-3.5",
+      num: "h-8 w-8 text-[10px]",
+      word: "text-xl sm:text-2xl",
+    };
+  }
+  if (count <= 9) {
+    return {
+      list: "gap-2",
+      row: "gap-3 px-4 py-2.5",
+      num: "h-7 w-7 text-[9px]",
+      word: "text-base sm:text-xl",
+    };
+  }
+  return {
+    list: "gap-1.5",
+    row: "gap-2.5 px-3 py-2",
+    num: "h-6 w-6 text-[8px]",
+    word: "text-sm sm:text-lg",
+  };
 }
 
 /** Aciertos seguidos a partir de los cuales el marcador ya no crece más. */
@@ -182,6 +214,9 @@ export default function PlayPage() {
     lockedIndexRef.current = lockedIndex;
   }, [lockedIndex]);
 
+  // Cuánto ocupan las cartas esta ronda: cuantas más palabras, más apretadas.
+  const size = densityFor(current?.words.length ?? 0);
+
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -196,6 +231,15 @@ export default function PlayPage() {
   useEffect(() => {
     void preloadSounds();
   }, []);
+
+  // Mientras hay ronda en marcha se esconde el botón de ajustes del layout:
+  // en móvil se comía la esquina de la cabecera. En la pantalla inicial y en
+  // el Game Over vuelve a estar disponible.
+  const inRound = phase !== "idle" && phase !== "gameover";
+  useEffect(() => {
+    setPlaying(inRound);
+    return () => setPlaying(false);
+  }, [inRound]);
 
   const startRound = useCallback(
     (next: number) => {
@@ -472,7 +516,7 @@ export default function PlayPage() {
 
   return (
     <main
-      className={`relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10 ${
+      className={`relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6 sm:gap-8 sm:px-6 sm:py-10 ${
         shake ? "shake-screen" : ""
       }`}
     >
@@ -588,7 +632,7 @@ export default function PlayPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="flex flex-1 flex-col gap-6"
+          className="flex flex-1 flex-col gap-4 sm:gap-6"
         >
           {/* Solo memorización: las palabras aparecen y se quedan 3 s. Aquí
               NO hay cuenta atrás; el cronómetro llega en la fase de ordenar. */}
@@ -598,7 +642,7 @@ export default function PlayPage() {
           </p>
 
           {/* Todas las palabras salen de golpe, repartidas como cartas. */}
-          <ol className="flex flex-col gap-3">
+          <ol className={`flex flex-col ${size.list}`}>
             {current.words.map((word, i) => (
               <li
                 key={word}
@@ -610,11 +654,15 @@ export default function PlayPage() {
                 }
                 className="animate-card-deal card-base bg-card-face text-card-ink"
               >
-                <div className="flex items-center gap-5 px-6 py-4">
-                  <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
+                <div className={`flex items-center ${size.row}`}>
+                  <span
+                    className={`font-display bg-chip-blue text-cream flex shrink-0 items-center justify-center rounded-md [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)] ${size.num}`}
+                  >
                     {i + 1}
                   </span>
-                  <span className="flex-1 truncate font-sans text-2xl font-bold">
+                  <span
+                    className={`flex-1 truncate font-sans font-bold ${size.word}`}
+                  >
                     {word}
                   </span>
                 </div>
@@ -629,7 +677,7 @@ export default function PlayPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex flex-1 flex-col gap-6"
+          className="flex flex-1 flex-col gap-4 pb-20 sm:gap-6"
         >
           {/* Cuenta atrás de 30 s para ordenar, con milisegundos. Los últimos
               3 s se ponen gigantes detrás de las cartas. Solo mientras se
@@ -642,14 +690,14 @@ export default function PlayPage() {
             />
           )}
 
-          <p className="font-sans text-cream/70 pt-14 text-center text-base">
+          <p className="font-sans text-cream/70 pt-12 text-center text-sm sm:pt-14 sm:text-base">
             {phase === "checking" ? (
               t("play.checkingLabel")
             ) : (
               <>
                 {t("play.arrangeHint")}
-                <br />
-                <span className="text-cream/45 text-sm">
+                {/* La ayuda de teclado no pinta nada en un móvil. */}
+                <span className="text-cream/45 hidden text-sm sm:block">
                   {t("play.keyboardHint")}
                 </span>
               </>
@@ -686,7 +734,7 @@ export default function PlayPage() {
               axis="y"
               values={board}
               onReorder={handleReorder}
-              className="flex flex-col gap-3"
+              className={`flex flex-col ${size.list}`}
             >
               {board.map((word, i) => {
                 const checking = phase === "checking";
@@ -755,11 +803,15 @@ export default function PlayPage() {
                         : ""
                     }`}
                   >
-                    <div className="flex items-center gap-5 px-6 py-4">
-                      <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
+                    <div className={`flex items-center ${size.row}`}>
+                      <span
+                        className={`font-display bg-chip-blue text-cream flex shrink-0 items-center justify-center rounded-md [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)] ${size.num}`}
+                      >
                         {i + 1}
                       </span>
-                      <span className="flex-1 truncate font-sans text-2xl font-bold">
+                      <span
+                        className={`flex-1 truncate font-sans font-bold ${size.word}`}
+                      >
                         {word}
                       </span>
                       {checking && i < checkIndex && (
@@ -803,17 +855,27 @@ export default function PlayPage() {
             )}
           </div>
 
+        </motion.section>
+      )}
+
+      {/* El botón va fijo al borde inferior: con 10-15 palabras la lista pasa
+          de la pantalla y antes había que bajar a buscarlo. Vive FUERA de la
+          sección a propósito: framer-motion le pone transform y un ancestro
+          transformado ancla los position:fixed de dentro. El degradado tapa
+          la lista al deslizarse (de ahí el pb de la sección). */}
+      {(phase === "arrange" || phase === "checking") && (
+        <div className="from-felt via-felt/90 fixed inset-x-0 bottom-0 z-30 flex justify-center bg-gradient-to-t to-transparent px-4 pt-8 pb-3">
           <button
             type="button"
             onClick={finishArrange}
             disabled={phase === "checking"}
-            className="group card-base bg-chip-gold text-card-ink -skew-x-6 self-center px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
+            className="group card-base bg-chip-gold text-card-ink -skew-x-6 px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
           >
             <span className="font-display block skew-x-6 text-lg">
               {t("play.ready")}
             </span>
           </button>
-        </motion.section>
+        </div>
       )}
 
       {phase === "gameover" && current && (
