@@ -33,15 +33,49 @@ export const RARITY_LABEL_KEY: Record<Rarity, TranslationKey> = {
  * Probabilidad de que la tirada de una ronda saque un comodín de cada rareza.
  * Se comprueban de la más rara a la más común, así que cada una conserva
  * exactamente su porcentaje; lo que sobra (35%) es la ronda sin premio.
+ *
+ * Estos son los valores de fábrica. El menú de ajustes puede sobrescribirlos
+ * en caliente con el código de trucos (ver setDropChance).
  */
-export const DROP_CHANCE: Record<Rarity, number> = {
+export const DEFAULT_DROP_CHANCE: Record<Rarity, number> = {
   legendary: 0.05,
   epic: 0.2,
   bronze: 0.4,
 };
 
 /** Rarezas en el orden en que se comprueban al tirar. */
-const ROLL_ORDER: Rarity[] = ["legendary", "epic", "bronze"];
+export const ROLL_ORDER: Rarity[] = ["legendary", "epic", "bronze"];
+
+// Copia viva que usa rollJoker. Se mantiene fuera de React a propósito: la
+// tirada ocurre dentro de la lógica de juego, no en un render.
+let dropChance: Record<Rarity, number> = { ...DEFAULT_DROP_CHANCE };
+
+export function setDropChance(next: Record<Rarity, number>) {
+  dropChance = { ...next };
+}
+
+export function getDropChance(): Record<Rarity, number> {
+  return dropChance;
+}
+
+/**
+ * Reparto real que produce la tabla, incluida la probabilidad de no sacar
+ * nada. Como las rarezas se comprueban en orden, si los porcentajes suman más
+ * de 100 las últimas se quedan con lo que queda: esto lo hace visible.
+ */
+export function effectiveShares(
+  chance: Record<Rarity, number> = dropChance,
+): Record<Rarity | "none", number> {
+  let left = 1;
+  const out = {} as Record<Rarity | "none", number>;
+  for (const rarity of ROLL_ORDER) {
+    const share = Math.max(0, Math.min(chance[rarity], left));
+    out[rarity] = share;
+    left -= share;
+  }
+  out.none = left;
+  return out;
+}
 
 export type Joker = {
   id: JokerId;
@@ -85,7 +119,7 @@ export function rollJoker(): JokerId | null {
   let acc = 0;
 
   for (const rarity of ROLL_ORDER) {
-    acc += DROP_CHANCE[rarity];
+    acc += dropChance[rarity];
     if (roll >= acc) continue;
 
     const pool = Object.values(JOKERS).filter((j) => j.rarity === rarity);

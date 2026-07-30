@@ -64,6 +64,15 @@ const es = {
   "settings.language": "Idioma",
   "settings.theme": "Tema",
   "settings.close": "Cerrar",
+  "settings.code": "Código",
+  "settings.codePlaceholder": "Introduce un código",
+  "settings.codeApply": "OK",
+  "settings.codeWrong": "Código incorrecto",
+  "settings.drops": "Probabilidad de comodín",
+  "settings.dropsHint":
+    "Se comprueban de la más rara a la más común: si suman más de 100%, las últimas se quedan con lo que sobra.",
+  "settings.dropsNone": "Sin comodín",
+  "settings.dropsReset": "Restaurar",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -120,6 +129,15 @@ const en: Record<keyof typeof es, string> = {
   "settings.language": "Language",
   "settings.theme": "Theme",
   "settings.close": "Close",
+  "settings.code": "Code",
+  "settings.codePlaceholder": "Enter a code",
+  "settings.codeApply": "OK",
+  "settings.codeWrong": "Wrong code",
+  "settings.drops": "Joker drop rate",
+  "settings.dropsHint":
+    "Checked from rarest to most common: if they add up to over 100%, the last ones only get what's left.",
+  "settings.dropsNone": "No joker",
+  "settings.dropsReset": "Reset",
 };
 
 export type TranslationKey = keyof typeof es;
