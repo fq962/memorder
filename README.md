@@ -119,14 +119,18 @@ Abre [http://localhost:3000](http://localhost:3000).
 
 ## TODO
 
-- [ ] **Agregar sonidos** — feedback al mostrar palabras, acertar, fallar y *Game Over*.
+- [x] **Agregar sonidos** — feedback al mostrar palabras, acertar, fallar y *Game Over*.
 - [ ] **Mejorar la puntuación** — revisar multiplicadores, bonificaciones y balance entre rondas.
-- [ ] **Migrar a otra biblioteca de drag and drop** — reemplazar el DnD nativo por una librería (p. ej. `@dnd-kit/core`) para mejor UX en móvil y animaciones al reordenar.
+- [x] **Migrar a otra biblioteca de drag and drop** — reemplazar el DnD nativo por una librería (p. ej. `@dnd-kit/core`) para mejor UX en móvil y animaciones al reordenar.
 - [ ] **Ranking real** — persistir puntuaciones y mostrar un top global en la pantalla principal.
 - [ ] **Modos de juego** — contrarreloj, práctica sin *Game Over*, dificultad manual.
-- [ ] **Internacionalización** — soporte para más idiomas en el banco de palabras.
+- [x] **Internacionalización** — soporte para más idiomas en el banco de palabras.
+- [ ] **Compartir mi resultado** — posibilidad de compartir mis resultados por whatsapp para que sea fácil la distribución del juego.
+- [ ] **Agregar SEO** — Es necesario agregar bastante SEO a la página principal.
+- [ ] **Mejorar visualmente el TOP** — Actualmente tiene BUGs en Mobile, además de hacerlo un poco más vivo.
 
 ## Creadores
 
-- [@crywhat7](https://github.com/crywhat7) — Milton Barrientos
 - [@fq962](https://github.com/fq962) — Fernando Quintanilla
+- [@kometha](https://github.com/kometha) — Keneth Cubas
+- [@crywhat7](https://github.com/crywhat7) — Milton Barrientos

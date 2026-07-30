@@ -8,8 +8,25 @@ export type Round = {
   totalMs: number;
 };
 
+/** Límites del número fijo de palabras que se puede forzar desde ajustes. */
+export const MIN_FIXED_WORDS = 3;
+export const MAX_FIXED_WORDS = 10;
+
+// Cantidad fija de palabras por ronda, o null para seguir la progresión
+// normal. Igual que las probabilidades de comodín: lo cambia el panel de
+// trucos y se lee desde la lógica de juego, fuera de React.
+let fixedWordCount: number | null = null;
+
+export function setFixedWordCount(count: number | null) {
+  fixedWordCount =
+    count === null
+      ? null
+      : Math.min(MAX_FIXED_WORDS, Math.max(MIN_FIXED_WORDS, Math.round(count)));
+}
+
 /** Palabras por ronda según la tabla de progresión. */
 export function wordCountFor(round: number): number {
+  if (fixedWordCount !== null) return fixedWordCount;
   const table = [3, 4, 5, 5, 6, 7, 8, 9, 10];
   if (round <= table.length) return table[round - 1];
   // A partir de la ronda 10: una palabra más cada dos rondas, máximo 15.
@@ -53,6 +70,53 @@ export function shuffleDistinct(words: string[]): string[] {
   while (out.every((w, i) => w === words[i]) && guard++ < 20) {
     out = shuffle(words);
   }
+  return out;
+}
+
+/**
+ * Regalo del comodín Free Order: mueve `word` a su posición correcta dentro
+ * del tablero ya barajado, para que el jugador la encuentre puesta.
+ *
+ * Si al colocarla el tablero queda resuelto entero (pasa en rondas de 3
+ * palabras: dejar una en su sitio puede ordenar las otras dos), intercambia
+ * otras dos para que siga habiendo trabajo que hacer.
+ */
+export function placeCorrect(
+  board: string[],
+  solution: string[],
+  word: string,
+): string[] {
+  const target = solution.indexOf(word);
+  const from = board.indexOf(word);
+  if (target < 0 || from < 0) return [...board];
+
+  const out = move(board, from, target);
+  if (out.every((w, i) => w === solution[i])) {
+    const others = out.map((_, i) => i).filter((i) => i !== target);
+    if (others.length >= 2) {
+      const [a, b] = others;
+      [out[a], out[b]] = [out[b], out[a]];
+    }
+  }
+  return out;
+}
+
+/**
+ * Devuelve el tablero con `word` de vuelta en la casilla `index`, sin tocar
+ * el orden relativo de las demás. Es lo que mantiene clavada la palabra que
+ * regala Free Order pase lo que pase con el resto.
+ */
+export function pinAt(
+  board: string[],
+  word: string | null,
+  index: number,
+): string[] {
+  if (!word || index < 0) return board;
+  const from = board.indexOf(word);
+  if (from < 0 || from === index) return board;
+
+  const out = board.filter((w) => w !== word);
+  out.splice(index, 0, word);
   return out;
 }
 
@@ -134,19 +198,25 @@ export function speedMultiplier(elapsedMs: number, limitMs: number): number {
 }
 
 /**
- * Puntos de una sola palabra acertada, ya con los tres factores aplicados.
+ * Puntos de una sola palabra acertada, ya con los factores aplicados.
  * @param count  palabras que tenía la ronda.
  * @param speed  multiplicador devuelto por speedMultiplier.
+ * @param boost  multiplicador del comodín activo en la ronda (1 si no hay).
  */
-export function wordPoints(word: string, count: number, speed = 1): number {
+export function wordPoints(
+  word: string,
+  count: number,
+  speed = 1,
+  boost = 1,
+): number {
   const base = BASE_POINTS + lengthBonus(word);
-  return Math.round(base * countMultiplier(count) * speed);
+  return Math.round(base * countMultiplier(count) * speed * boost);
 }
 
 /** Bonus Perfect: 25% extra si toda la ronda es correcta. */
-export function perfectBonus(words: string[], speed = 1): number {
+export function perfectBonus(words: string[], speed = 1, boost = 1): number {
   const total = words.reduce(
-    (sum, w) => sum + wordPoints(w, words.length, speed),
+    (sum, w) => sum + wordPoints(w, words.length, speed, boost),
     0,
   );
   return Math.round(total * 0.25);

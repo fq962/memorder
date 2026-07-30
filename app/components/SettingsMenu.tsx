@@ -8,7 +8,18 @@ import { LANGUAGE_OPTIONS } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
 import { playTick } from "../lib/sounds";
 import { THEME_OPTIONS } from "../lib/themes";
-import { GlobeIcon, PaletteIcon, SettingsIcon, VolumeIcon, XIcon } from "lucide-react";
+import { effectiveShares, RARITY_LABEL_KEY, ROLL_ORDER } from "../lib/jokers";
+import { MAX_FIXED_WORDS, MIN_FIXED_WORDS } from "../play/game";
+import { useIsPlaying } from "../lib/hud";
+import {
+  DicesIcon,
+  GlobeIcon,
+  KeyRoundIcon,
+  PaletteIcon,
+  SettingsIcon,
+  VolumeIcon,
+  XIcon,
+} from "lucide-react";
 
 /**
  * Botón de engranaje fijo en la esquina + panel modal con volumen e idioma.
@@ -16,22 +27,56 @@ import { GlobeIcon, PaletteIcon, SettingsIcon, VolumeIcon, XIcon } from "lucide-
  */
 export default function SettingsMenu() {
   const [open, setOpen] = useState(false);
-  const { language, volume, theme, setLanguage, setVolume, setTheme, t } =
-    useSettings();
+  // Código que el jugador está escribiendo y si el último intento falló.
+  const [code, setCode] = useState("");
+  const [wrongCode, setWrongCode] = useState(false);
+  const {
+    language,
+    volume,
+    theme,
+    cheats,
+    dropChance,
+    fixedWords,
+    setLanguage,
+    setVolume,
+    setTheme,
+    unlockCheats,
+    setRarityChance,
+    setFixedWords,
+    resetCheats,
+    t,
+  } = useSettings();
+
+  const shares = effectiveShares(dropChance);
+  // Durante la partida el engranaje estorba (y en móvil pisa la cabecera).
+  const playing = useIsPlaying();
+
+  function submitCode() {
+    if (unlockCheats(code)) {
+      setCode("");
+      setWrongCode(false);
+      playTick(880);
+    } else {
+      setWrongCode(true);
+      playTick(220);
+    }
+  }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="card-base bg-chip-red text-cream fixed top-4 right-4 z-40 -skew-x-6 px-5 py-3 transition-transform hover:scale-110 hover:brightness-110 active:scale-95"
-      >
-        <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
-          {/* <Image src={ICONS.settings} alt="" width={28} height={27} /> */}
-          <SettingsIcon className="w-6 h-6 text-white" />
-          {t("settings.open")}
-        </span>
-      </button>
+      {!playing && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="card-base bg-chip-red text-cream fixed top-4 right-4 z-40 -skew-x-6 px-5 py-3 transition-transform hover:scale-110 hover:brightness-110 active:scale-95"
+        >
+          <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
+            {/* <Image src={ICONS.settings} alt="" width={28} height={27} /> */}
+            <SettingsIcon className="h-6 w-6 text-white" />
+            {t("settings.open")}
+          </span>
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -144,6 +189,156 @@ export default function SettingsMenu() {
                   ))}
                 </div>
               </div>
+
+              {/* Código de trucos: al acertarlo quedan a la vista los
+                  porcentajes de aparición de los comodines. */}
+              {!cheats && (
+                <div className="border-card-ink/15 mt-8 flex flex-col gap-3 border-t pt-6">
+                  <p className="font-display flex items-center gap-2 text-[10px] tracking-wide">
+                    <KeyRoundIcon className="text-card-ink/60 size-4" />{" "}
+                    {t("settings.code")}
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value);
+                        setWrongCode(false);
+                      }}
+                      onKeyDown={(e) => {
+                        // El juego escucha teclas sueltas: aquí no deben pasar.
+                        e.stopPropagation();
+                        if (e.key === "Enter") submitCode();
+                      }}
+                      placeholder={t("settings.codePlaceholder")}
+                      aria-label={t("settings.code")}
+                      autoComplete="off"
+                      spellCheck={false}
+                      className={`font-display border-card-ink/25 text-card-ink placeholder:text-card-ink/35 min-w-0 flex-1 rounded-md border bg-transparent px-3 py-2 text-[10px] tracking-widest uppercase outline-none focus:border-chip-gold ${
+                        wrongCode ? "animate-shake border-chip-red" : ""
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={submitCode}
+                      className="font-display bg-chip-gold text-card-ink -skew-x-6 px-4 py-2 text-[10px] transition-transform hover:scale-105 active:scale-95"
+                    >
+                      <span className="block skew-x-6">
+                        {t("settings.codeApply")}
+                      </span>
+                    </button>
+                  </div>
+                  {wrongCode && (
+                    <p className="font-display text-chip-red text-[9px] tracking-wide">
+                      {t("settings.codeWrong")}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Panel desbloqueado: un control por rareza. */}
+              {cheats && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-card-ink/15 mt-8 flex flex-col gap-3 border-t pt-6"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-display flex items-center gap-2 text-[10px] tracking-wide">
+                      <DicesIcon className="text-card-ink/60 size-4" />{" "}
+                      {t("settings.drops")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Restaura los valores de fábrica y cierra el modo
+                        // admin: vuelve a pedirse el código.
+                        resetCheats();
+                        setCode("");
+                        setWrongCode(false);
+                        playTick(520);
+                      }}
+                      className="font-display border-card-ink/25 text-card-ink/60 hover:text-card-ink rounded-md border px-2 py-1 text-[9px] tracking-wide transition-colors"
+                    >
+                      {t("settings.dropsReset")}
+                    </button>
+                  </div>
+
+                  {ROLL_ORDER.map((rarity) => (
+                    <div key={rarity} className="flex flex-col gap-1.5">
+                      <label className="font-display flex items-center justify-between text-[9px] tracking-wide">
+                        <span>{t(RARITY_LABEL_KEY[rarity])}</span>
+                        <span className="text-card-ink/60 tabular-nums">
+                          {Math.round(dropChance[rarity] * 100)}%
+                        </span>
+                      </label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={Math.round(dropChance[rarity] * 100)}
+                        onChange={(e) =>
+                          setRarityChance(rarity, Number(e.target.value) / 100)
+                        }
+                        aria-label={t(RARITY_LABEL_KEY[rarity])}
+                        className="accent-chip-purple h-2 w-full cursor-pointer"
+                      />
+                    </div>
+                  ))}
+
+                  {/* Reparto real, con lo que queda para "sin premio". */}
+                  <p className="font-display text-card-ink/60 flex justify-between text-[9px] tracking-wide">
+                    <span>{t("settings.dropsNone")}</span>
+                    <span className="tabular-nums">
+                      {Math.round(shares.none * 100)}%
+                    </span>
+                  </p>
+                  <p className="font-sans text-card-ink/45 text-[10px] leading-snug">
+                    {t("settings.dropsHint")}
+                  </p>
+
+                  {/* Palabras por ronda: AUTO sigue la progresión; mover el
+                      deslizador fija la cantidad. */}
+                  <div className="border-card-ink/10 mt-2 flex flex-col gap-1.5 border-t pt-4">
+                    <label className="font-display flex items-center justify-between text-[9px] tracking-wide">
+                      <span>{t("settings.words")}</span>
+                      <span className="text-card-ink/60 tabular-nums">
+                        {fixedWords ?? t("settings.wordsAuto")}
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFixedWords(null);
+                          playTick(600);
+                        }}
+                        className={`font-display shrink-0 rounded-md border px-2 py-1 text-[9px] tracking-wide transition-colors ${
+                          fixedWords === null
+                            ? "border-chip-gold bg-chip-gold/20 text-card-ink"
+                            : "border-card-ink/25 text-card-ink/60"
+                        }`}
+                      >
+                        {t("settings.wordsAuto")}
+                      </button>
+                      <input
+                        type="range"
+                        min={MIN_FIXED_WORDS}
+                        max={MAX_FIXED_WORDS}
+                        value={fixedWords ?? MIN_FIXED_WORDS}
+                        onChange={(e) => setFixedWords(Number(e.target.value))}
+                        aria-label={t("settings.words")}
+                        className="accent-chip-purple h-2 w-full cursor-pointer"
+                      />
+                    </div>
+                    <p className="font-sans text-card-ink/45 text-[10px] leading-snug">
+                      {t("settings.wordsHint")}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </motion.div>
         )}

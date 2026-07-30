@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion, Reorder } from "framer-motion";
+import { AnimatePresence, motion, Reorder } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MemorizeTimer from "../components/MemorizeTimer";
+import JokerReveal from "../components/JokerReveal";
+import JokerCard from "../components/JokerCard";
+import { JOKERS, rollJoker, X15_BOOST, type JokerId } from "../lib/jokers";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
+import { setPlaying } from "../lib/hud";
 import { useSettings } from "../lib/settings";
 import { ICONS } from "../lib/icons";
 import {
@@ -15,6 +19,8 @@ import {
   countMultiplier,
   move,
   perfectBonus,
+  pinAt,
+  placeCorrect,
   shuffleDistinct,
   speedMultiplier,
   wordPoints,
@@ -36,6 +42,37 @@ const ARRANGE_MS = 30000;
 function tiltFor(i: number): string {
   const seq = [-3, 2, -1.5, 3, -2.5, 1.5, -2, 2.5];
   return `${seq[i % seq.length]}deg`;
+}
+
+/**
+ * Tamaño de las filas según cuántas palabras tenga la ronda. Con 10-15 la
+ * lista no cabe en un móvil, así que las cartas se aprietan en vez de dejar
+ * que la ronda se salga de la pantalla. Se usa igual al memorizar y al
+ * ordenar para que las cartas no cambien de tamaño entre fases.
+ */
+function densityFor(count: number) {
+  if (count <= 5) {
+    return {
+      list: "gap-3",
+      row: "gap-4 px-5 py-3.5",
+      num: "h-8 w-8 text-[10px]",
+      word: "text-xl sm:text-2xl",
+    };
+  }
+  if (count <= 9) {
+    return {
+      list: "gap-2",
+      row: "gap-3 px-4 py-2.5",
+      num: "h-7 w-7 text-[9px]",
+      word: "text-base sm:text-xl",
+    };
+  }
+  return {
+    list: "gap-1.5",
+    row: "gap-2.5 px-3 py-2",
+    num: "h-6 w-6 text-[8px]",
+    word: "text-sm sm:text-lg",
+  };
 }
 
 /** Aciertos seguidos a partir de los cuales el marcador ya no crece más. */
@@ -134,9 +171,25 @@ export default function PlayPage() {
   // Multiplicador de rapidez de la ronda: se congela al enviar el orden para
   // que los +N que se muestran al comprobar coincidan con lo que se suma.
   const [speed, setSpeed] = useState(1);
+  // Comodín encontrado que se está enseñando: mientras hay uno, la
+  // comprobación se queda en pausa y la carta ocupa la pantalla.
+  const [joker, setJoker] = useState<JokerId | null>(null);
+  // Comodín guardado en la cabecera, a la espera de gastarse en la ronda
+  // siguiente (el que se está enseñando pasa aquí al pulsar CONTINUAR).
+  const [held, setHeld] = useState<JokerId | null>(null);
+  // Comodín que se está gastando en la ronda en curso. Vive hasta que empieza
+  // la siguiente: sus efectos duran también la comprobación.
+  const [applied, setApplied] = useState<JokerId | null>(null);
+  // Palabra que Free Order ha dejado ya colocada en su sitio esta ronda.
+  const [hintWord, setHintWord] = useState<string | null>(null);
+
+  /** Multiplicador de puntos de la ronda: solo lo sube el comodín ×1.5. */
+  const boost = applied === "x1-5" ? X15_BOOST : 1;
 
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
+  // Última ronda en la que ya se tiró por comodín: una tirada por ronda.
+  const rolledRoundRef = useRef(0);
   // Ronda actual en una ref para que el callback del cronómetro sea estable.
   const currentRef = useRef<Round | null>(null);
   // Instante en que empezó la fase de ordenar, para medir cuánto se tarda.
@@ -153,6 +206,20 @@ export default function PlayPage() {
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+  // Casilla que Free Order deja clavada: ni la palabra regalada se mueve de
+  // ahí, ni ninguna otra puede ocupar su sitio. -1 cuando no hay comodín.
+  const lockedIndex =
+    hintWord && current ? current.words.indexOf(hintWord) : -1;
+  const lockedIndexRef = useRef(lockedIndex);
+  const hintWordRef = useRef(hintWord);
+  useEffect(() => {
+    lockedIndexRef.current = lockedIndex;
+    hintWordRef.current = hintWord;
+  }, [lockedIndex, hintWord]);
+
+  // Cuánto ocupan las cartas esta ronda: cuantas más palabras, más apretadas.
+  const size = densityFor(current?.words.length ?? 0);
+
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -168,12 +235,25 @@ export default function PlayPage() {
     void preloadSounds();
   }, []);
 
+  // Mientras hay ronda en marcha se esconde el botón de ajustes del layout:
+  // en móvil se comía la esquina de la cabecera. En la pantalla inicial y en
+  // el Game Over vuelve a estar disponible.
+  const inRound = phase !== "idle" && phase !== "gameover";
+  useEffect(() => {
+    setPlaying(inRound);
+    return () => setPlaying(false);
+  }, [inRound]);
+
   const startRound = useCallback(
     (next: number) => {
       const generated = buildRound(next, recentRef.current.flat(), language);
       recentRef.current = [generated.words, ...recentRef.current].slice(0, 5);
       currentRef.current = generated;
       setCurrent(generated);
+      // El comodín de la ronda anterior ya cumplió: se retira aquí, no al
+      // enviar el orden, para que su efecto dure toda la comprobación.
+      setApplied(null);
+      setHintWord(null);
       setSelected(null);
       setCheckIndex(0);
       setWrongIndex(null);
@@ -188,12 +268,27 @@ export default function PlayPage() {
     if (phase !== "showing" || !current) return;
     const revealMs = current.words.length * 70 + 500;
     const timer = setTimeout(() => {
-      setBoard(shuffleDistinct(current.words));
+      let dealt = shuffleDistinct(current.words);
+      let hint: string | null = null;
+
+      // El comodín guardado se gasta aquí, al repartir.
+      if (held === "free-order") {
+        // Una palabra al azar se reparte ya en su sitio.
+        hint = current.words[Math.floor(Math.random() * current.words.length)];
+        dealt = placeCorrect(dealt, current.words, hint);
+      }
+      if (held) {
+        setApplied(held);
+        setHeld(null);
+      }
+
+      setBoard(dealt);
+      setHintWord(hint);
       arrangeStartRef.current = performance.now();
       setPhase("arrange");
     }, revealMs + SHOW_HOLD_MS);
     return () => clearTimeout(timer);
-  }, [phase, current]);
+  }, [phase, current, held]);
 
   // Cierra la fase de ordenar: congela el multiplicador de rapidez con el
   // tiempo empleado y pasa a comprobar. Estable (solo setters y refs) para no
@@ -214,14 +309,69 @@ export default function PlayPage() {
       setSelected(null);
       return;
     }
+    // La casilla clavada no se elige ni sirve de destino: ni sale su palabra
+    // ni entra otra.
+    if (index === lockedIndex) return;
     if (selected === null) {
       setSelected(index);
       playTick(660);
       return;
     }
-    if (selected !== index) setBoard((b) => move(b, selected, index));
+    // El intercambio puede correr a la regalada de su casilla: se re-clava.
+    if (selected !== index) {
+      setBoard((b) => pinAt(move(b, selected, index), hintWord, lockedIndex));
+    }
     setSelected(null);
   }
+
+  /**
+   * Reordenación por arrastre con la casilla de Free Order clavada.
+   *
+   * Framer propone los cambios de uno en uno: para pasar una carta al otro
+   * lado de la clavada, primero propone intercambiarla CON la clavada. Si ahí
+   * nos limitáramos a devolver la regalada a su sitio, el intercambio se
+   * deshace y la carta se queda atascada sin poder cruzar. Por eso ese caso
+   * se traduce a lo que el jugador quiere: la carta salta al otro lado y las
+   * demás se corren, con la regalada quieta en su casilla.
+   */
+  function handleReorder(next: string[]) {
+    if (!hintWord || lockedIndex < 0) {
+      setBoard(next);
+      return;
+    }
+    if (next.indexOf(hintWord) === lockedIndex) {
+      setBoard(next);
+      return;
+    }
+
+    const others = next.filter((w) => w !== hintWord);
+    const before = board.filter((w) => w !== hintWord);
+    // Si el resto no ha cambiado de orden, lo único que propone framer es el
+    // intercambio con la clavada: es un intento de cruce.
+    const crossing = others.every((w, i) => w === before[i]);
+
+    if (crossing) {
+      // La regalada se fue hacia abajo => quien la empujó subía, y al revés.
+      const step = next.indexOf(hintWord) > lockedIndex ? -1 : 1;
+      const from = others.indexOf(next[lockedIndex]);
+      const to = Math.min(others.length - 1, Math.max(0, from + step));
+      if (from >= 0 && to !== from) {
+        const jumped = move(others, from, to);
+        jumped.splice(lockedIndex, 0, hintWord);
+        setBoard(jumped);
+        return;
+      }
+    }
+
+    setBoard(pinAt(next, hintWord, lockedIndex));
+  }
+
+  // Al pulsar CONTINUAR la carta deja de ocupar la pantalla y se guarda en la
+  // cabecera, donde espera a gastarse en la ronda siguiente.
+  const dismissJoker = useCallback(() => {
+    if (joker) setHeld(joker);
+    setJoker(null);
+  }, [joker]);
 
   // Pequeño destello + tick sonoro sobre una casilla: feedback de "acción
   // completada" para los cambios que no vienen de un arrastre.
@@ -234,15 +384,25 @@ export default function PlayPage() {
   // Coloca la palabra seleccionada en la posición `target` (0-indexed).
   const moveSelectedTo = useCallback(
     (target: number) => {
+      const board = boardRef.current;
       const from = selectedRef.current;
-      const len = boardRef.current.length;
+      const len = board.length;
       if (from === null || target < 0 || target >= len) return;
-      if (target !== from) setBoard((b) => move(b, from, target));
+      // Ni se saca la palabra clavada ni se le quita el sitio.
+      const locked = lockedIndexRef.current;
+      if (from === locked || target === locked) return;
+
+      // Al colocar por encima o por debajo de la casilla clavada, la regalada
+      // se correría: se re-clava y la palabra movida acaba donde toque.
+      const word = board[from];
+      const next = pinAt(move(board, from, target), hintWordRef.current, locked);
+      const landed = next.indexOf(word);
+      setBoard(next);
       // A diferencia del mouse, el teclado deja la palabra seleccionada en su
       // nueva casilla para poder seguir ajustándola sin volver a elegirla.
-      setSelected(target);
-      playTick(target > from ? 990 : 740);
-      flash(target);
+      setSelected(landed);
+      playTick(landed > from ? 990 : 740);
+      flash(landed);
     },
     [flash],
   );
@@ -259,12 +419,18 @@ export default function PlayPage() {
       const len = boardRef.current.length;
       if (len === 0) return;
 
+      const locked = lockedIndexRef.current;
+
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         const cur = selectedRef.current;
         const base = cur ?? (e.key === "ArrowDown" ? -1 : 0);
         const delta = e.key === "ArrowDown" ? 1 : -1;
-        const next = (base + delta + len) % len;
+        // El cursor salta por encima de la casilla clavada: no hay nada que
+        // hacer en ella.
+        let next = (base + delta + len) % len;
+        if (next === locked) next = (next + delta + len) % len;
+        if (next === locked) return;
         setSelected(next);
         playTick(e.key === "ArrowDown" ? 520 : 620);
         return;
@@ -284,7 +450,7 @@ export default function PlayPage() {
       if (/^[0-9]$/.test(e.key)) {
         const n = Number(e.key);
         const target = (n === 0 ? 10 : n) - 1;
-        if (target >= len) return;
+        if (target >= len || target === locked) return;
         e.preventDefault();
         if (selectedRef.current === null) {
           setSelected(target);
@@ -302,6 +468,8 @@ export default function PlayPage() {
   // Comprueba una palabra por paso, sumando sus puntos si es correcta.
   useEffect(() => {
     if (phase !== "checking" || !current) return;
+    // Hay un comodín en pantalla: la comprobación espera a que se cierre.
+    if (joker) return;
 
     // Ya hay un fallo: se deja ver un momento antes del Game Over.
     if (wrongIndex !== null) {
@@ -313,7 +481,7 @@ export default function PlayPage() {
       if (checkIndex >= board.length) {
         // Todas correctas: suena la ronda ganada y salta a la siguiente.
         playSound("correct-round");
-        setScore((s) => s + perfectBonus(current.words, speed));
+        setScore((s) => s + perfectBonus(current.words, speed, boost));
         const next = round + 1;
         setRound(next);
         startRound(next);
@@ -324,10 +492,28 @@ export default function PlayPage() {
         // Palabra correcta: efecto escalera (tono sube con cada acierto).
         playSound("correct-word", { rate: 1 + checkIndex * 0.08 });
         setScore(
-          (s) => s + wordPoints(board[checkIndex], current.words.length, speed),
+          (s) =>
+            s +
+            wordPoints(board[checkIndex], current.words.length, speed, boost),
         );
         setWordsCorrect((c) => c + 1);
         setCheckIndex((i) => i + 1);
+
+        // Tirada de comodín: UNA por ronda, no una por palabra. Se hace al
+        // validar la última palabra, o sea con la ronda ya ganada: los
+        // porcentajes son la probabilidad de llevarte carta por ronda
+        // superada. La comprobación se queda en pausa mientras se enseña, y
+        // el bonus Perfect y la ronda siguiente esperan a CONTINUAR.
+        // No se tira si ya hay uno en la mano, para no pisarlo.
+        const lastWord = checkIndex === board.length - 1;
+        if (lastWord && rolledRoundRef.current !== round && !held) {
+          rolledRoundRef.current = round;
+          const dropped = rollJoker();
+          if (dropped) {
+            playSound("correct-round", { rate: 0.85 });
+            setJoker(dropped);
+          }
+        }
       } else {
         // Fallo: suena game over y se sacude la pantalla.
         playSound("gameover");
@@ -337,12 +523,29 @@ export default function PlayPage() {
       }
     }, CHECK_STEP_MS);
     return () => clearTimeout(timer);
-  }, [phase, current, board, checkIndex, wrongIndex, round, speed, startRound]);
+  }, [
+    phase,
+    current,
+    board,
+    checkIndex,
+    wrongIndex,
+    round,
+    speed,
+    boost,
+    joker,
+    held,
+    startRound,
+  ]);
 
   function restart() {
     unlockAudio();
     playSound("game-start");
     recentRef.current = [];
+    rolledRoundRef.current = 0;
+    setJoker(null);
+    setHeld(null);
+    setApplied(null);
+    setHintWord(null);
     setSpeed(1);
     setScore(0);
     setWordsCorrect(0);
@@ -352,10 +555,17 @@ export default function PlayPage() {
 
   return (
     <main
-      className={`relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10 ${
+      className={`relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6 sm:gap-8 sm:px-6 sm:py-10 ${
         shake ? "shake-screen" : ""
       }`}
     >
+      {/* Hallazgo de comodín: se superpone a todo y pausa la comprobación. */}
+      <AnimatePresence>
+        {joker && (
+          <JokerReveal joker={joker} onDismiss={dismissJoker} />
+        )}
+      </AnimatePresence>
+
       <header className="flex items-center justify-between">
         <Link
           href="/"
@@ -364,13 +574,47 @@ export default function PlayPage() {
           ← memorder
         </Link>
         {phase !== "idle" && (
-          <p className="font-display flex items-center gap-5 text-sm">
+          <p className="font-display flex items-center gap-3 text-sm">
             <span className="card-base bg-chip-purple/90 text-cream -skew-x-6 px-3 py-1.5">
               <span className="block skew-x-6 text-[10px]">
                 {t("play.round")} {round}
               </span>
             </span>
-            <span className="text-lg">
+
+            {/* Cartas en juego: la que se está gastando esta ronda (algo
+                apagada) y la que espera en la mano. */}
+            {[
+              { id: applied, inUse: true },
+              { id: held, inUse: false },
+            ].map(({ id, inUse }) =>
+              id ? (
+                <motion.span
+                  key={inUse ? "applied" : "held"}
+                  initial={{ opacity: 0, scale: 0.3, rotate: -18, y: -10 }}
+                  animate={{
+                    opacity: inUse ? 0.65 : 1,
+                    scale: 1,
+                    rotate: -4,
+                    y: 0,
+                  }}
+                  transition={{ type: "spring", stiffness: 320, damping: 17 }}
+                  role="img"
+                  aria-label={`${inUse ? t("joker.inUse") : t("joker.held")}: ${t(
+                    JOKERS[id].nameKey,
+                  )}`}
+                  title={t(JOKERS[id].nameKey)}
+                  className="inline-block"
+                >
+                  <JokerCard
+                    joker={JOKERS[id]}
+                    width={26}
+                    className="rounded-[3px] ring-2 ring-[var(--holo-glow)] [filter:drop-shadow(0_0_10px_var(--holo-glow))]"
+                  />
+                </motion.span>
+              ) : null,
+            )}
+
+            <span className="ml-2 text-lg">
               <CountUp value={score} />
             </span>
           </p>
@@ -427,7 +671,7 @@ export default function PlayPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="flex flex-1 flex-col gap-6"
+          className="flex flex-1 flex-col gap-4 sm:gap-6"
         >
           {/* Solo memorización: las palabras aparecen y se quedan 3 s. Aquí
               NO hay cuenta atrás; el cronómetro llega en la fase de ordenar. */}
@@ -437,7 +681,7 @@ export default function PlayPage() {
           </p>
 
           {/* Todas las palabras salen de golpe, repartidas como cartas. */}
-          <ol className="flex flex-col gap-3">
+          <ol className={`flex flex-col ${size.list}`}>
             {current.words.map((word, i) => (
               <li
                 key={word}
@@ -449,11 +693,15 @@ export default function PlayPage() {
                 }
                 className="animate-card-deal card-base bg-card-face text-card-ink"
               >
-                <div className="flex items-center gap-5 px-6 py-4">
-                  <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
+                <div className={`flex items-center ${size.row}`}>
+                  <span
+                    className={`font-display bg-chip-blue text-cream flex shrink-0 items-center justify-center rounded-md [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)] ${size.num}`}
+                  >
                     {i + 1}
                   </span>
-                  <span className="flex-1 truncate font-sans text-2xl font-bold">
+                  <span
+                    className={`flex-1 truncate font-sans font-bold ${size.word}`}
+                  >
                     {word}
                   </span>
                 </div>
@@ -468,7 +716,7 @@ export default function PlayPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex flex-1 flex-col gap-6"
+          className="flex flex-1 flex-col gap-4 pb-20 sm:gap-6"
         >
           {/* Cuenta atrás de 30 s para ordenar, con milisegundos. Los últimos
               3 s se ponen gigantes detrás de las cartas. Solo mientras se
@@ -481,14 +729,14 @@ export default function PlayPage() {
             />
           )}
 
-          <p className="font-sans text-cream/70 pt-14 text-center text-base">
+          <p className="font-sans text-cream/70 pt-12 text-center text-sm sm:pt-14 sm:text-base">
             {phase === "checking" ? (
               t("play.checkingLabel")
             ) : (
               <>
                 {t("play.arrangeHint")}
-                <br />
-                <span className="text-cream/45 text-sm">
+                {/* La ayuda de teclado no pinta nada en un móvil. */}
+                <span className="text-cream/45 hidden text-sm sm:block">
                   {t("play.keyboardHint")}
                 </span>
               </>
@@ -509,6 +757,13 @@ export default function PlayPage() {
                   ⚡ {t("play.speedChip")} ×{speed.toFixed(2)}
                 </span>
               </span>
+              {boost > 1 && (
+                <span className="card-base bg-chip-green text-card-ink -skew-x-6 px-3 py-1.5">
+                  <span className="block skew-x-6">
+                    🃏 {t("play.jokerChip")} ×{boost.toFixed(2)}
+                  </span>
+                </span>
+              )}
             </p>
           )}
 
@@ -517,14 +772,17 @@ export default function PlayPage() {
               as="ol"
               axis="y"
               values={board}
-              onReorder={setBoard}
-              className="flex flex-col gap-3"
+              onReorder={handleReorder}
+              className={`flex flex-col ${size.list}`}
             >
               {board.map((word, i) => {
                 const checking = phase === "checking";
                 const justScored = checking && i === checkIndex - 1;
                 const isSelected = !checking && selected === i;
                 const isFlashing = !checking && flashIndex === i;
+                // Regalo del comodín: queda clavada en su casilla, así que la
+                // marca verde siempre dice la verdad.
+                const isFreeOrder = !checking && word === hintWord;
                 let tone = "bg-card-face";
                 let ink = "text-card-ink";
                 if (checking && i < checkIndex) {
@@ -534,6 +792,8 @@ export default function PlayPage() {
                   ink = "text-cream";
                 } else if (isSelected) {
                   tone = "bg-chip-gold";
+                } else if (isFreeOrder) {
+                  tone = "bg-chip-green";
                 }
 
                 return (
@@ -541,7 +801,7 @@ export default function PlayPage() {
                     key={word}
                     value={word}
                     as="li"
-                    drag={!checking}
+                    drag={!checking && !isFreeOrder}
                     dragListener
                     dragElastic={0.12}
                     dragTransition={{ bounceStiffness: 500, bounceDamping: 28 }}
@@ -550,7 +810,9 @@ export default function PlayPage() {
                       zIndex: 30,
                       boxShadow: "0 22px 34px -8px rgba(0,0,0,0.55)",
                     }}
-                    whileTap={!checking ? { scale: 0.96 } : undefined}
+                    whileTap={
+                      !checking && !isFreeOrder ? { scale: 0.96 } : undefined
+                    }
                     animate={{ scale: isSelected ? 1.035 : 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 32 }}
                     onDragStart={() => {
@@ -567,29 +829,44 @@ export default function PlayPage() {
                     className={`card-base transition-colors duration-300 ${tone} ${ink} ${
                       justScored || isFlashing ? "animate-row-flash" : ""
                     } ${
-                      !checking
+                      !checking && !isFreeOrder
                         ? "hover:-translate-y-1 hover:brightness-105 cursor-grab active:cursor-grabbing"
                         : "cursor-default"
                     } ${i === wrongIndex ? "animate-shake" : ""} ${
                       isSelected
                         ? "ring-chip-gold shadow-[0_0_24px_rgba(255,203,43,0.55)] ring-4 ring-offset-2 ring-offset-felt"
                         : ""
+                    } ${
+                      isFreeOrder
+                        ? "ring-chip-green/70 shadow-[0_0_22px_rgba(61,220,132,0.5)] ring-2"
+                        : ""
                     }`}
                   >
-                    <div className="flex items-center gap-5 px-6 py-4">
-                      <span className="font-display bg-chip-blue text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)]">
+                    <div className={`flex items-center ${size.row}`}>
+                      <span
+                        className={`font-display bg-chip-blue text-cream flex shrink-0 items-center justify-center rounded-md [box-shadow:inset_0_2px_0_rgba(255,255,255,0.4)] ${size.num}`}
+                      >
                         {i + 1}
                       </span>
-                      <span className="flex-1 truncate font-sans text-2xl font-bold">
+                      <span
+                        className={`flex-1 truncate font-sans font-bold ${size.word}`}
+                      >
                         {word}
                       </span>
                       {checking && i < checkIndex && (
                         <span className="font-display text-card-ink text-sm">
-                          +{wordPoints(word, current.words.length, speed)}
+                          +{wordPoints(word, current.words.length, speed, boost)}
                         </span>
                       )}
                       {checking && i === wrongIndex && (
                         <span className="text-2xl">💥</span>
+                      )}
+                      {/* Sello del comodín: ya está en su sitio y no se mueve. */}
+                      {isFreeOrder && (
+                        <span className="font-display text-card-ink flex shrink-0 items-center gap-1 text-[9px] tracking-widest">
+                          <span aria-hidden>🔒</span>
+                          {t("joker.freeOrderTag")}
+                        </span>
                       )}
                     </div>
                   </Reorder.Item>
@@ -610,23 +887,34 @@ export default function PlayPage() {
                     board[checkIndex - 1],
                     current.words.length,
                     speed,
+                    boost,
                   )}
                 </span>
               </span>
             )}
           </div>
 
+        </motion.section>
+      )}
+
+      {/* El botón va fijo al borde inferior: con 10-15 palabras la lista pasa
+          de la pantalla y antes había que bajar a buscarlo. Vive FUERA de la
+          sección a propósito: framer-motion le pone transform y un ancestro
+          transformado ancla los position:fixed de dentro. El degradado tapa
+          la lista al deslizarse (de ahí el pb de la sección). */}
+      {(phase === "arrange" || phase === "checking") && (
+        <div className="from-felt via-felt/90 fixed inset-x-0 bottom-0 z-30 flex justify-center bg-gradient-to-t to-transparent px-4 pt-8 pb-3">
           <button
             type="button"
             onClick={finishArrange}
             disabled={phase === "checking"}
-            className="group card-base bg-chip-gold text-card-ink -skew-x-6 self-center px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
+            className="group card-base bg-chip-gold text-card-ink -skew-x-6 px-10 py-3 transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
           >
             <span className="font-display block skew-x-6 text-lg">
               {t("play.ready")}
             </span>
           </button>
-        </motion.section>
+        </div>
       )}
 
       {phase === "gameover" && current && (
