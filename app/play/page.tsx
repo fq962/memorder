@@ -235,10 +235,10 @@ export default function PlayPage() {
     void preloadSounds();
   }, []);
 
-  // Mientras hay ronda en marcha se esconde el botón de ajustes del layout:
-  // en móvil se comía la esquina de la cabecera. En la pantalla inicial y en
-  // el Game Over vuelve a estar disponible.
-  const inRound = phase !== "idle" && phase !== "gameover";
+  // El botón de ajustes solo vive en la pantalla inicial: se esconde en
+  // cuanto arranca una ronda y se queda escondido durante los resultados
+  // (Game Over incluido), para no estorbar ni comerse la cabecera en móvil.
+  const inRound = phase !== "idle";
   useEffect(() => {
     setPlaying(inRound);
     return () => setPlaying(false);
