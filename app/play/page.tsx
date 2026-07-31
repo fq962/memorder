@@ -15,6 +15,9 @@ import { setPlaying } from "../lib/hud";
 import { useSettings } from "../lib/settings";
 import { useAuth } from "../lib/auth";
 import { saveScore } from "../lib/scores";
+import { savePendingRun } from "../lib/pendingRun";
+import LoginBanner from "../components/LoginBanner";
+import ShareRunButton from "../components/ShareRunButton";
 import { ICONS } from "../lib/icons";
 import { createRng, newSeed, normalizeSeed, type Rng } from "../lib/rng";
 import {
@@ -307,7 +310,7 @@ function SeedEntry({ onPlay }: { onPlay: (seed: string) => void }) {
 
 export default function PlayPage() {
   const { language, t } = useSettings();
-  const { user } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
@@ -349,6 +352,10 @@ export default function PlayPage() {
   const rngRef = useRef<Rng | null>(null);
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
+  // Comodines que cayeron en esta run, en el orden en que aparecieron: se
+  // guardan junto al resto de la partida para el historial y se le pasan al
+  // botón de compartir, así que viven en estado (no en ref) a propósito.
+  const [collectedJokers, setCollectedJokers] = useState<JokerId[]>([]);
   // Última ronda en la que ya se tiró por comodín: una tirada por ronda.
   const rolledRoundRef = useRef(0);
   // Ronda actual en una ref para que el callback del cronómetro sea estable.
@@ -689,6 +696,7 @@ export default function PlayPage() {
           if (dropped) {
             playSound("correct-round", { rate: 0.85 });
             setJoker(dropped);
+            setCollectedJokers((list) => [...list, dropped]);
           }
         }
       } else {
@@ -722,28 +730,35 @@ export default function PlayPage() {
    * ella la misma run entraría repetida en la tabla. Se marca por seed, así
    * que repetir la MISMA semilla sí vuelve a guardar: es otra partida.
    *
-   * Sin sesión no se guarda nada: la tabla exige un user_id y la política RLS
-   * solo acepta el del usuario logueado. Se juega igual, simplemente no
-   * puntúa para el ranking.
+   * Sin sesión no se guarda en Supabase (la tabla exige un user_id y la
+   * política RLS solo acepta el del usuario logueado), pero se deja en
+   * localStorage por si el jugador se loguea justo ahora desde el banner del
+   * Game Over: PendingRunSync la recoge y la guarda apenas haya sesión.
    */
   const savedRunRef = useRef<string | null>(null);
   useEffect(() => {
-    if (phase !== "gameover" || !seed || !user) return;
+    if (phase !== "gameover" || !seed) return;
     if (savedRunRef.current === seed) return;
 
     savedRunRef.current = seed;
-    void saveScore(user.id, {
+    const run = {
       score,
       roundReached: round,
       wordsCorrect,
       seed,
       language,
-    });
+      jokers: collectedJokers,
+    };
+    if (user) {
+      void saveScore(user.id, run);
+    } else {
+      savePendingRun(run);
+    }
     // score, round y wordsCorrect quedan fuera de las dependencias a
     // propósito: al llegar al Game Over ya no cambian, y listarlos solo
     // abriría la puerta a un segundo guardado si alguno se actualizara tarde.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, seed, user, language]);
+  }, [phase, seed, user, language, collectedJokers]);
 
   /**
    * Arranca una partida: crea el dado que decidirá palabras, reparto y
@@ -769,6 +784,7 @@ export default function PlayPage() {
     // semilla no registraría el segundo intento.
     savedRunRef.current = null;
     recentRef.current = [];
+    setCollectedJokers([]);
     rolledRoundRef.current = 0;
     setJoker(null);
     setHeld(null);
@@ -1185,6 +1201,14 @@ export default function PlayPage() {
             </span>
           </p>
 
+          {!user && (
+            <LoginBanner
+              message="play.gameoverLoginBanner"
+              cta="play.gameoverLoginCta"
+              onLogin={() => void signInWithGoogle()}
+            />
+          )}
+
           {seed && <SeedChip seed={seed} />}
 
           <div className="flex flex-wrap justify-center gap-4">
@@ -1209,6 +1233,15 @@ export default function PlayPage() {
                   {t("play.gameoverSameSeed")}
                 </span>
               </button>
+            )}
+            {seed && (
+              <ShareRunButton
+                score={score}
+                round={round}
+                wordsCorrect={wordsCorrect}
+                seed={seed}
+                jokers={collectedJokers}
+              />
             )}
             <Link
               href="/"

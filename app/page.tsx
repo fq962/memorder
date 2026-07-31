@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { HistoryIcon } from "lucide-react";
 import cerebri from "./images/cerebri.png";
 import HoverSound from "./components/HoverSound";
 import AuthButton from "./components/AuthButton";
@@ -83,6 +84,15 @@ export default function Home() {
   return (
     <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 py-14 md:flex-row md:items-center md:gap-10">
       <AuthButton />
+      <Link
+        href="/history"
+        className="card-base bg-card-face text-card-ink fixed top-20 left-4 z-40 flex -skew-x-6 items-center gap-2 px-4 py-2.5 transition-transform hover:scale-105 active:scale-95"
+      >
+        <span className="font-display flex skew-x-6 items-center gap-2 text-xs">
+          <HistoryIcon className="h-5 w-5" />
+          {t("home.historyLink")}
+        </span>
+      </Link>
       {/* ---- Panel izquierdo: título + botón PLAY ---- */}
       <section className="flex flex-col items-center justify-center gap-6 text-center md:w-[42%]">
         {/* Mascota: cerebro animado, flotando. */}

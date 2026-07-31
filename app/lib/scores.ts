@@ -6,6 +6,7 @@
 // resto de la app.
 import { supabase } from "./supabase";
 import type { Language } from "./i18n";
+import type { JokerId } from "./jokers";
 
 /** Partida terminada, tal como se guarda en la tabla `scores`. */
 export type Run = {
@@ -16,6 +17,8 @@ export type Run = {
   seed: string;
   /** Idioma en que se jugó: los puntajes entre bancos no son comparables. */
   language: Language;
+  /** Comodines que cayeron durante la run, en el orden en que aparecieron. */
+  jokers: JokerId[];
 };
 
 /** Una fila del ranking: el mejor puntaje de un usuario. */
@@ -46,6 +49,7 @@ export async function saveScore(userId: string, run: Run): Promise<boolean> {
     words_correct: run.wordsCorrect,
     seed: run.seed,
     language: run.language,
+    jokers: run.jokers,
   });
 
   if (error) {
@@ -93,5 +97,63 @@ export async function fetchLeaderboard(
     name: row.display_name ?? "anónimo",
     score: row.score,
     seed: row.seed,
+  }));
+}
+
+/** Una partida propia, tal como se lista en el historial. */
+export type HistoryEntry = {
+  score: number;
+  roundReached: number;
+  wordsCorrect: number;
+  seed: string;
+  jokers: JokerId[];
+  createdAt: string;
+};
+
+/** Fila cruda de la tabla `scores`, tal como la trae el select del historial. */
+type HistoryRow = {
+  score: number;
+  round_reached: number;
+  words_correct: number;
+  seed: string;
+  jokers: JokerId[] | null;
+  created_at: string;
+};
+
+/**
+ * Trae las partidas del propio usuario, de la más reciente a la más vieja.
+ *
+ * A diferencia del ranking, va por un select directo (no por RPC): solo lee
+ * las filas propias, y la policy `scores_select_own` (ver la migración SQL)
+ * es la que lo permite bajo RLS.
+ *
+ * Devuelve null si la consulta falla, mismo criterio que fetchLeaderboard.
+ */
+export async function fetchHistory(
+  userId: string,
+  limit = 50,
+): Promise<HistoryEntry[] | null> {
+  const client = supabase;
+  if (!client) return null;
+
+  const { data, error } = await client
+    .from("scores")
+    .select("score, round_reached, words_correct, seed, jokers, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    if (error) console.error("No se pudo cargar el historial:", error.message);
+    return null;
+  }
+
+  return (data as HistoryRow[]).map((row) => ({
+    score: row.score,
+    roundReached: row.round_reached,
+    wordsCorrect: row.words_correct,
+    seed: row.seed,
+    jokers: row.jokers ?? [],
+    createdAt: row.created_at,
   }));
 }

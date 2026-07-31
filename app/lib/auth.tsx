@@ -59,7 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      // Vuelve a la MISMA página desde la que se pidió el login, no siempre
+      // al home: el Game Over de /play depende de esto para poder guardar la
+      // partida apenas haya sesión (ver PendingRunSync).
+      options: { redirectTo: window.location.href },
     });
   };
 

@@ -90,6 +90,26 @@ const es = {
   "play.gameoverSameSeed": "🔁 MISMA SEMILLA",
   "play.gameoverRetry": "🔁 OTRA VEZ",
   "play.gameoverRanking": "RANKING",
+  "play.gameoverLoginBanner":
+    "Iniciá sesión para guardar esta puntuación y que aparezca en el ranking.",
+  "play.gameoverLoginCta": "Iniciar sesión y guardar",
+  "play.gameoverShare": "📤 COMPARTIR",
+  "play.gameoverShareGenerating": "Generando…",
+  "play.gameoverShareFallbackHint":
+    "Se descargó tu tarjeta. Adjuntala en WhatsApp para compartirla.",
+  "share.inviteText":
+    "Llegué a la ronda {round} con {score} puntos en MEMORDER 🧠🔥 ¿Te animás a superarme?",
+  "share.jokersLabel": "COMODINES CONSEGUIDOS",
+
+  "history.title": "MIS PARTIDAS",
+  "history.loading": "CARGANDO HISTORIAL…",
+  "history.error": "No se pudo cargar el historial. Probá de nuevo más tarde.",
+  "history.empty": "Todavía no jugaste ninguna partida logueado.",
+  "history.loginCta": "Iniciá sesión para ver tu historial de partidas.",
+  "history.round": "Ronda",
+  "history.score": "Puntos",
+  "history.jokersNone": "—",
+  "home.historyLink": "Historial",
 
   "settings.open": "Ajustes",
   "settings.title": "OPCIONES",
@@ -191,6 +211,26 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverSameSeed": "🔁 SAME SEED",
   "play.gameoverRetry": "🔁 TRY AGAIN",
   "play.gameoverRanking": "RANKING",
+  "play.gameoverLoginBanner":
+    "Sign in to save this score and get it on the leaderboard.",
+  "play.gameoverLoginCta": "Sign in and save",
+  "play.gameoverShare": "📤 SHARE",
+  "play.gameoverShareGenerating": "Generating…",
+  "play.gameoverShareFallbackHint":
+    "Your card was downloaded. Attach it on WhatsApp to share it.",
+  "share.inviteText":
+    "I reached round {round} with {score} points on MEMORDER 🧠🔥 Think you can beat me?",
+  "share.jokersLabel": "JOKERS EARNED",
+
+  "history.title": "MY RUNS",
+  "history.loading": "LOADING HISTORY…",
+  "history.error": "Couldn't load your history. Try again later.",
+  "history.empty": "You haven't played any signed-in runs yet.",
+  "history.loginCta": "Sign in to see your run history.",
+  "history.round": "Round",
+  "history.score": "Score",
+  "history.jokersNone": "—",
+  "home.historyLink": "History",
 
   "settings.open": "Settings",
   "settings.title": "OPTIONS",
