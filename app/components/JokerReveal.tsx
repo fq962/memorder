@@ -1,13 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useSettings } from "../lib/settings";
-import JokerCard from "./JokerCard";
+import JokerCard, { JokerCardBack } from "./JokerCard";
 import {
   CARD_ASPECT,
-  CARD_BACK,
   JOKERS,
   RARITY_CLASS,
   RARITY_LABEL_KEY,
@@ -107,14 +105,10 @@ export default function JokerReveal({
             cambie de ángulo, como cuando giras una carta en la mano. */}
         <div className="animate-joker-tilt h-full w-full [transform-style:preserve-3d]">
           <div className="animate-joker-flip relative h-full w-full [transform-style:preserve-3d]">
-            <Image
-              src={CARD_BACK}
-              alt=""
-              aria-hidden
+            <JokerCardBack
+              joker={joker}
               width={CARD_WIDTH}
-              height={CARD_HEIGHT}
-              priority
-              className="absolute inset-0 h-full w-full [backface-visibility:hidden] drop-shadow-[0_16px_28px_rgba(0,0,0,0.65)]"
+              className="absolute inset-0 [backface-visibility:hidden] drop-shadow-[0_16px_28px_rgba(0,0,0,0.65)]"
             />
             {/* La cara lleva la sombra y el halo de rareza aquí fuera: dentro
                 del recorte del holograma se perderían. */}

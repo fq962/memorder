@@ -4,13 +4,10 @@
 import type { TranslationKey } from "./i18n";
 import type { Rng } from "./rng";
 
-/** Reverso común a todas las cartas: la cara con la que empieza el giro. */
-export const CARD_BACK = "/cards/back.webp";
-
 /** Proporción de las cartas recortadas (ancho / alto). */
 export const CARD_ASPECT = 326 / 446;
 
-export type JokerId = "free-order" | "x1-5";
+export type JokerId = "free-order" | "x1-5" | "x3";
 
 /**
  * Rareza del comodín. Decide el color de la lámina holográfica y del halo:
@@ -102,10 +99,26 @@ export const JOKERS: Record<JokerId, Joker> = {
     nameKey: "joker.x15.name",
     descriptionKey: "joker.x15.description",
   },
+  x3: {
+    id: "x3",
+    image: "/cards/x3.webp",
+    rarity: "legendary",
+    nameKey: "joker.x3.name",
+    descriptionKey: "joker.x3.description",
+  },
 };
 
 /** Multiplicador de puntos que aplica el comodín ×1.5 a su ronda. */
 export const X15_BOOST = 1.5;
+
+/** Multiplicador de puntos que aplica el comodín ×3 a su ronda. */
+export const X3_BOOST = 3;
+
+/** Multiplicador de puntos por comodín, para los que boostean puntos. */
+export const JOKER_BOOST: Partial<Record<JokerId, number>> = {
+  "x1-5": X15_BOOST,
+  x3: X3_BOOST,
+};
 
 /**
  * Tirada de una ronda: devuelve el comodín que aparece, o null si esta vez no
@@ -132,4 +145,29 @@ export function rollJoker(rng: Rng): JokerId | null {
   }
 
   return null;
+}
+
+/**
+ * Probabilidad de que una tirada con premio, en vez de entregar el comodín
+ * directo, ofrezca elegir entre él y un segundo comodín al azar.
+ */
+export const CHOICE_CHANCE = 0.5;
+
+/**
+ * Tirada de una ronda que además puede convertirse en elección: devuelve
+ * null sin premio, un array de un comodín si toca directo, o de dos si esta
+ * vez se deja elegir entre ambos.
+ *
+ * El segundo comodín sale de cualquier rareza, no solo de la que tocó: es
+ * una oportunidad de ver (y quedarte) un comodín distinto al que ibas a
+ * recibir, no una segunda tirada de la misma rareza.
+ */
+export function rollJokerChoice(rng: Rng): JokerId[] | null {
+  const first = rollJoker(rng);
+  if (!first) return null;
+  if (rng.float() >= CHOICE_CHANCE) return [first];
+
+  const rest = (Object.keys(JOKERS) as JokerId[]).filter((id) => id !== first);
+  const second = rng.pick(rest);
+  return second ? [first, second] : [first];
 }

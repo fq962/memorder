@@ -59,7 +59,7 @@ const es = {
   "play.arrangeHint":
     "Arrástralas al orden original — o toca una y luego otra para intercambiarlas. 🃏",
   "play.keyboardHint":
-    "Teclado: ↑ ↓ para elegir, un número para soltarla, Enter para comprobar.",
+    "Teclado: ↑ ↓ para elegir, un número para soltarla, Enter o Espacio para comprobar.",
   "play.wordsChip": "PALABRAS",
   "play.speedChip": "RAPIDEZ",
   "play.jokerChip": "COMODÍN",
@@ -79,6 +79,10 @@ const es = {
   "joker.x15.name": "×1.5 Puntos",
   "joker.x15.description":
     "En la próxima ronda, todos los puntos que consigas se multiplican por 1.5.",
+  "joker.x3.name": "×3 Puntos",
+  "joker.x3.description":
+    "En la próxima ronda, todos los puntos que consigas se multiplican por 3.",
+  "joker.chooseOne": "ELIGE UN COMODÍN",
 
   "play.gameoverScore": "Puntuación",
   "play.gameoverRoundReached": "Ronda alcanzada",
@@ -193,7 +197,7 @@ const en: Record<keyof typeof es, string> = {
   "play.arrangeHint":
     "Drag them into the original order — or tap one, then another, to swap them. 🃏",
   "play.keyboardHint":
-    "Keyboard: ↑ ↓ to select, a number to drop it, Enter to check.",
+    "Keyboard: ↑ ↓ to select, a number to drop it, Enter or Space to check.",
   "play.wordsChip": "WORDS",
   "play.speedChip": "SPEED",
   "play.jokerChip": "JOKER",
@@ -213,6 +217,10 @@ const en: Record<keyof typeof es, string> = {
   "joker.x15.name": "×1.5 Points",
   "joker.x15.description":
     "Next round, every point you score is multiplied by 1.5.",
+  "joker.x3.name": "×3 Points",
+  "joker.x3.description":
+    "Next round, every point you score is multiplied by 3.",
+  "joker.chooseOne": "CHOOSE A JOKER",
 
   "play.gameoverScore": "Score",
   "play.gameoverRoundReached": "Round reached",

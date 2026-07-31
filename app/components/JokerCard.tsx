@@ -54,3 +54,38 @@ export default function JokerCard({
     </span>
   );
 }
+
+/**
+ * Reverso de un comodín: su propia carta, boca abajo y desenfocada, en vez
+ * de un dorso genérico. Se escala un poco de más para que el desenfoque no
+ * deje ver borde transparente, y un velo oscuro la aplana para que se lea
+ * como reverso y no como la cara ya revelada.
+ */
+export function JokerCardBack({
+  joker,
+  width,
+  className = "",
+}: {
+  joker: Joker;
+  width: number;
+  className?: string;
+}) {
+  const height = Math.round(width / CARD_ASPECT);
+
+  return (
+    <span
+      style={{ width, height }}
+      className={`relative block overflow-hidden bg-black ${className}`}
+    >
+      <Image
+        src={joker.image}
+        alt=""
+        aria-hidden
+        width={width}
+        height={height}
+        className="h-full w-full scale-125 rotate-180 blur-md"
+      />
+      <span aria-hidden className="absolute inset-0 bg-black/45" />
+    </span>
+  );
+}
