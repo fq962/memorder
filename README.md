@@ -125,9 +125,12 @@ Abre [http://localhost:3000](http://localhost:3000).
 - [x] **Ranking real** — persistir puntuaciones y mostrar un top global en la pantalla principal.
 - [ ] **Modos de juego** — contrarreloj, práctica sin *Game Over*, dificultad manual.
 - [x] **Internacionalización** — soporte para más idiomas en el banco de palabras.
-- [ ] **Compartir mi resultado** — posibilidad de compartir mis resultados por whatsapp para que sea fácil la distribución del juego.
+- [x] **Compartir mi resultado** — posibilidad de compartir mis resultados por whatsapp para que sea fácil la distribución del juego.
 - [ ] **Agregar SEO** — Es necesario agregar bastante SEO a la página principal.
 - [ ] **Mejorar visualmente el TOP** — Actualmente tiene BUGs en Mobile, además de hacerlo un poco más vivo.
+- [x] **ThemeLab** — Un editor de temas para los devs.
+- [x] **Más palabras** — Agregar 5000 palabras, 2.5k en español y 2.5k en inglés
+- [x] **Selector de comodines** — Pueden aparecer más de 1 comodin y seleccionar uno (Borrador)
 
 ## Creadores
 
