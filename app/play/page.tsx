@@ -6,8 +6,9 @@ import { AnimatePresence, motion, Reorder } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MemorizeTimer from "../components/MemorizeTimer";
 import JokerReveal from "../components/JokerReveal";
+import JokerChoice from "../components/JokerChoice";
 import JokerCard from "../components/JokerCard";
-import { JOKERS, rollJoker, X15_BOOST, type JokerId } from "../lib/jokers";
+import { JOKERS, JOKER_BOOST, rollJokerChoice, type JokerId } from "../lib/jokers";
 import cerebri from "../images/cerebri.png";
 import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
@@ -328,9 +329,11 @@ export default function PlayPage() {
   // Multiplicador de rapidez de la ronda: se congela al enviar el orden para
   // que los +N que se muestran al comprobar coincidan con lo que se suma.
   const [speed, setSpeed] = useState(1);
-  // Comodín encontrado que se está enseñando: mientras hay uno, la
-  // comprobación se queda en pausa y la carta ocupa la pantalla.
-  const [joker, setJoker] = useState<JokerId | null>(null);
+  // Comodín(es) que se están enseñando tras superar la ronda: uno solo si
+  // toca directo, dos si esta tirada se convirtió en elección. Mientras haya
+  // algo aquí, la comprobación se queda en pausa y la carta (o las dos)
+  // ocupa la pantalla.
+  const [jokerOptions, setJokerOptions] = useState<JokerId[] | null>(null);
   // Comodín guardado en la cabecera, a la espera de gastarse en la ronda
   // siguiente (el que se está enseñando pasa aquí al pulsar CONTINUAR).
   const [held, setHeld] = useState<JokerId | null>(null);
@@ -349,8 +352,8 @@ export default function PlayPage() {
   // historial repitiendo una semilla favorable.
   const [seedIsCustom, setSeedIsCustom] = useState(false);
 
-  /** Multiplicador de puntos de la ronda: solo lo sube el comodín ×1.5. */
-  const boost = applied === "x1-5" ? X15_BOOST : 1;
+  /** Multiplicador de puntos de la ronda: solo lo suben los comodines ×N. */
+  const boost = applied ? (JOKER_BOOST[applied] ?? 1) : 1;
 
   // Dado de la partida, creado a partir del seed al empezar. Vive en una ref
   // porque lo consume la lógica de juego (efectos y callbacks), no el render:
@@ -551,12 +554,15 @@ export default function PlayPage() {
     setBoard(pinAt(next, hintWord, lockedIndex));
   }
 
-  // Al pulsar CONTINUAR la carta deja de ocupar la pantalla y se guarda en la
-  // cabecera, donde espera a gastarse en la ronda siguiente.
-  const dismissJoker = useCallback(() => {
-    if (joker) setHeld(joker);
-    setJoker(null);
-  }, [joker]);
+  // Al pulsar CONTINUAR (o elegir una de las dos cartas) el comodín deja de
+  // ocupar la pantalla, se guarda en la cabecera para la ronda siguiente y
+  // entra en el registro de la run. El que no se elige, si lo hubo, se
+  // pierde: no se guarda en ningún lado.
+  const chooseJoker = useCallback((id: JokerId) => {
+    setHeld(id);
+    setCollectedJokers((list) => [...list, id]);
+    setJokerOptions(null);
+  }, []);
 
   // Pequeño destello + tick sonoro sobre una casilla: feedback de "acción
   // completada" para los cambios que no vienen de un arrastre.
@@ -621,7 +627,7 @@ export default function PlayPage() {
         return;
       }
 
-      if (e.key === "Enter") {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         finishArrange();
         return;
@@ -653,8 +659,9 @@ export default function PlayPage() {
   // Comprueba una palabra por paso, sumando sus puntos si es correcta.
   useEffect(() => {
     if (phase !== "checking" || !current) return;
-    // Hay un comodín en pantalla: la comprobación espera a que se cierre.
-    if (joker) return;
+    // Hay un comodín (o una elección entre dos) en pantalla: la comprobación
+    // espera a que se cierre.
+    if (jokerOptions) return;
 
     // Ya hay un fallo: se deja ver un momento antes del Game Over.
     if (wrongIndex !== null) {
@@ -698,11 +705,10 @@ export default function PlayPage() {
           rngRef.current
         ) {
           rolledRoundRef.current = round;
-          const dropped = rollJoker(rngRef.current);
+          const dropped = rollJokerChoice(rngRef.current);
           if (dropped) {
             playSound("correct-round", { rate: 0.85 });
-            setJoker(dropped);
-            setCollectedJokers((list) => [...list, dropped]);
+            setJokerOptions(dropped);
           }
         }
       } else {
@@ -723,7 +729,7 @@ export default function PlayPage() {
     round,
     speed,
     boost,
-    joker,
+    jokerOptions,
     held,
     startRound,
   ]);
@@ -799,7 +805,7 @@ export default function PlayPage() {
     recentRef.current = [];
     setCollectedJokers([]);
     rolledRoundRef.current = 0;
-    setJoker(null);
+    setJokerOptions(null);
     setHeld(null);
     setApplied(null);
     setHintWord(null);
@@ -816,10 +822,20 @@ export default function PlayPage() {
         shake ? "shake-screen" : ""
       }`}
     >
-      {/* Hallazgo de comodín: se superpone a todo y pausa la comprobación. */}
+      {/* Hallazgo de comodín: se superpone a todo y pausa la comprobación.
+          Un elemento es la carta directa; dos, la elección entre ambas. */}
       <AnimatePresence>
-        {joker && (
-          <JokerReveal joker={joker} onDismiss={dismissJoker} />
+        {jokerOptions?.length === 1 && (
+          <JokerReveal
+            joker={jokerOptions[0]}
+            onDismiss={() => chooseJoker(jokerOptions[0])}
+          />
+        )}
+        {jokerOptions?.length === 2 && (
+          <JokerChoice
+            jokers={jokerOptions as [JokerId, JokerId]}
+            onChoose={chooseJoker}
+          />
         )}
       </AnimatePresence>
 
