@@ -42,6 +42,8 @@ export default function RunRow({ run }: { run: HistoryEntry }) {
                 key={idx}
                 joker={JOKERS[id]}
                 width={22}
+                animated={false}
+                priority={false}
                 className="rounded-[2px]"
               />
             ))

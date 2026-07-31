@@ -56,7 +56,7 @@ export default function JokerReveal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/80 px-6 py-10 text-center backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/90 px-6 py-10 text-center"
     >
       <motion.p
         initial={{ opacity: 0, y: -12 }}

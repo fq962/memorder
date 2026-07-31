@@ -7,7 +7,6 @@ import { ICONS } from "../lib/icons";
 import { LANGUAGE_OPTIONS } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
 import { playTick } from "../lib/sounds";
-import { THEME_OPTIONS } from "../lib/themes";
 import { effectiveShares, RARITY_LABEL_KEY, ROLL_ORDER } from "../lib/jokers";
 import { MAX_FIXED_WORDS, MIN_FIXED_WORDS } from "../play/game";
 import { useIsPlaying } from "../lib/hud";
@@ -34,6 +33,7 @@ export default function SettingsMenu() {
     language,
     volume,
     theme,
+    themeOptions,
     cheats,
     dropChance,
     fixedWords,
@@ -130,16 +130,16 @@ export default function SettingsMenu() {
                 <p className="font-display text-[10px] tracking-wide flex items-center gap-2">
                   <PaletteIcon className="size-4 text-card-ink/60" /> {t("settings.theme")}
                 </p>
-                <div className="flex gap-3">
-                  {THEME_OPTIONS.map((option) => (
+                <div className="flex flex-wrap gap-3">
+                  {themeOptions.map((option, i) => (
                     <button
                       key={option.code}
                       type="button"
                       onClick={() => {
                         setTheme(option.code);
-                        playTick(560 + THEME_OPTIONS.indexOf(option) * 80);
+                        playTick(560 + i * 80);
                       }}
-                      className={`flex flex-1 flex-col items-center gap-2 rounded-lg border px-2 py-2.5 transition-transform hover:scale-105 active:scale-95 ${
+                      className={`flex min-w-[64px] flex-1 flex-col items-center gap-2 rounded-lg border px-2 py-2.5 transition-transform hover:scale-105 active:scale-95 ${
                         theme === option.code
                           ? "border-chip-gold bg-chip-gold/15"
                           : "border-card-ink/20 bg-transparent"

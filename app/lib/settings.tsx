@@ -9,7 +9,11 @@ import {
 } from "react";
 import { setMasterVolume } from "./sounds";
 import { translations, type Language, type TranslationKey } from "./i18n";
-import type { Theme } from "./themes";
+import {
+  BUILTIN_THEME_OPTIONS,
+  type Theme,
+  type ThemeSwatchOption,
+} from "./themes";
 import {
   DEFAULT_DROP_CHANCE,
   ROLL_ORDER,
@@ -23,7 +27,6 @@ import {
 } from "../play/game";
 
 const STORAGE_KEY = "memorder:settings";
-const THEMES: readonly Theme[] = ["original", "hacker", "cozy"];
 
 /** Código que abre los ajustes de probabilidad de los comodines. */
 const CHEAT_CODE = "FERCRY";
@@ -91,7 +94,14 @@ function readFromStorage(): Settings {
         typeof parsed.volume === "number"
           ? Math.min(1, Math.max(0, parsed.volume))
           : 1,
-      theme: THEMES.includes(parsed.theme) ? parsed.theme : "original",
+      // Cualquier string sirve: los temas de base de datos no se conocen acá
+      // (viven en la tabla `themes`, ver themes-server.ts), y un id que ya
+      // no exista simplemente no matchea ningún bloque CSS y cae al tema
+      // base — no hace falta validarlo contra una lista fija.
+      theme:
+        typeof parsed.theme === "string" && parsed.theme.trim()
+          ? parsed.theme
+          : "original",
       cheats: parsed.cheats === true,
       dropChance: readDropChance(parsed.dropChance),
       fixedWords: readFixedWords(parsed.fixedWords),
@@ -128,6 +138,8 @@ type SettingsContextValue = Settings & {
   setLanguage: (language: Language) => void;
   setVolume: (volume: number) => void;
   setTheme: (theme: Theme) => void;
+  /** De fábrica + los que trajo el build de la tabla `themes`. */
+  themeOptions: ThemeSwatchOption[];
   /** Comprueba el código; devuelve si era correcto. */
   unlockCheats: (code: string) => boolean;
   setRarityChance: (rarity: Rarity, chance: number) => void;
@@ -139,7 +151,15 @@ type SettingsContextValue = Settings & {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
+export function SettingsProvider({
+  children,
+  extraThemeOptions = [],
+}: {
+  children: ReactNode;
+  /** Temas de base de datos, ya resueltos por el layout (Server Component). */
+  extraThemeOptions?: ThemeSwatchOption[];
+}) {
+  const themeOptions = [...BUILTIN_THEME_OPTIONS, ...extraThemeOptions];
   const settings = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -205,6 +225,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setLanguage,
         setVolume,
         setTheme,
+        themeOptions,
         unlockCheats,
         setRarityChance,
         setFixedWords,
