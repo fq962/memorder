@@ -42,18 +42,24 @@ export default function HistoryPage() {
 
   return (
     <main className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
-      <header className="flex items-center justify-between">
+      {/* El título va en su propia fila, no compartiendo la de "Ajustes":
+          ese botón es fijo arriba a la derecha en TODAS las pantallas que
+          no son de juego, y un título centrado en la misma fila termina
+          debajo suyo en mobile en vez de fallar solo en desktop. */}
+      <header className="flex items-center">
         <Link
           href="/"
           className="font-display text-cream/50 hover:text-cream text-xs transition-colors"
         >
           ← memorder
         </Link>
-        <h1 className="font-display text-chrome text-sm tracking-widest sm:text-lg">
-          {t("history.title")}
-        </h1>
-        <span aria-hidden className="w-16" />
       </header>
+      {/* mt-8: "Ajustes" es fixed top-4 right-4 en TODas las anchuras (no
+          solo mobile), así que el título necesita el mismo despeje siempre,
+          no solo por debajo de sm. */}
+      <h1 className="font-display text-chrome mt-8 text-center text-sm tracking-widest sm:text-lg">
+        {t("history.title")}
+      </h1>
 
       {!user ? (
         <div className="flex flex-1 items-center justify-center">

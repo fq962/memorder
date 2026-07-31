@@ -72,7 +72,7 @@ export default function AuthButton() {
         type="button"
         disabled
         title={t("auth.notConfigured")}
-        className="card-base bg-card-face text-card-ink/40 fixed top-4 left-4 z-40 -skew-x-6 px-5 py-3 opacity-60"
+        className="card-base bg-card-face text-card-ink/40 -skew-x-6 px-5 py-3 opacity-60"
       >
         <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
           <UserIcon className="h-5 w-5" />
@@ -121,7 +121,7 @@ export default function AuthButton() {
       <button
         type="button"
         onClick={() => (user ? openProfile() : void signInWithGoogle())}
-        className="card-base bg-card-face text-card-ink fixed top-4 left-4 z-40 flex -skew-x-6 items-center gap-2.5 px-4 py-2.5 transition-transform hover:scale-105 active:scale-95"
+        className="card-base bg-card-face text-card-ink flex -skew-x-6 items-center gap-2.5 px-4 py-2.5 transition-transform hover:scale-105 active:scale-95"
       >
         <span className="font-display flex skew-x-6 items-center gap-2.5 text-sm">
           {user ? (
@@ -144,7 +144,9 @@ export default function AuthButton() {
           ) : (
             <>
               <LogInIcon className="h-5 w-5" />
-              {t("auth.signIn")}
+              {/* En mobile solo el ícono: el texto completo desborda la
+                  pantalla y obliga al pill a partirse en dos líneas. */}
+              <span className="hidden sm:inline">{t("auth.signIn")}</span>
             </>
           )}
         </span>

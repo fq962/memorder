@@ -83,16 +83,21 @@ export default function Home() {
 
   return (
     <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 py-14 md:flex-row md:items-center md:gap-10">
-      <AuthButton />
-      <Link
-        href="/history"
-        className="card-base bg-card-face text-card-ink fixed top-20 left-4 z-40 flex -skew-x-6 items-center gap-2 px-4 py-2.5 transition-transform hover:scale-105 active:scale-95"
-      >
-        <span className="font-display flex skew-x-6 items-center gap-2 text-xs">
-          <HistoryIcon className="h-5 w-5" />
-          {t("home.historyLink")}
-        </span>
-      </Link>
+      {/* Apilados en un solo contenedor fijo: así se acomodan solos sin
+          importar cuánto mida cada uno (ícono solo en mobile, con texto
+          desde sm), en vez de calcular a mano dónde empieza el segundo. */}
+      <div className="fixed top-4 left-4 z-40 flex flex-col items-start gap-2">
+        <AuthButton />
+        <Link
+          href="/history"
+          className="card-base bg-card-face text-card-ink flex -skew-x-6 items-center gap-2 px-4 py-2.5 transition-transform hover:scale-105 active:scale-95"
+        >
+          <span className="font-display flex skew-x-6 items-center gap-2 text-xs">
+            <HistoryIcon className="h-5 w-5" />
+            <span className="hidden sm:inline">{t("home.historyLink")}</span>
+          </span>
+        </Link>
+      </div>
       {/* ---- Panel izquierdo: título + botón PLAY ---- */}
       <section className="flex flex-col items-center justify-center gap-6 text-center md:w-[42%]">
         {/* Mascota: cerebro animado, flotando. */}
