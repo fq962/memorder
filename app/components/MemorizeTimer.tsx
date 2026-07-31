@@ -71,9 +71,12 @@ export default function MemorizeTimer({
 
   return (
     <>
-      {/* ---- Chip normal (arriba) ---- */}
+      {/* ---- Chip normal (arriba) ----
+          top-20 en mobile: centrado a lo ancho de toda la pantalla, choca
+          con la cabecera (← memorder / RONDA n) que en mobile ocupa casi
+          todo ese ancho. Desde sm hay espacio de sobra y vuelve a top-3. */}
       {!isBig && (
-        <div className="fixed inset-x-0 top-0 z-30 flex flex-col items-center gap-1 pt-3">
+        <div className="fixed inset-x-0 top-20 z-30 flex flex-col items-center gap-1 sm:top-3">
           <div
             className={`card-base font-display flex items-center gap-2 px-4 py-2 text-sm tabular-nums transition-colors ${
               progress < 0.34

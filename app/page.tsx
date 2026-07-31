@@ -2,44 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { HistoryIcon } from "lucide-react";
 import cerebri from "./images/cerebri.png";
 import HoverSound from "./components/HoverSound";
 import AuthButton from "./components/AuthButton";
 import { useSettings } from "./lib/settings";
 import { ICONS } from "./lib/icons";
-
-const PLAYERS = [
-  "haide",
-  "lupita",
-  "carlos",
-  "mariana",
-  "tono",
-  "sofia",
-  "beto",
-  "camila",
-  "diego",
-  "renata",
-  "pablo",
-  "ximena",
-  "andres",
-  "valeria",
-  "nico",
-  "regina",
-  "javi",
-  "paola",
-  "memo",
-  "fer",
-];
-
-const ranking = Array.from({ length: 100 }, (_, i) => {
-  const round = Math.floor(i / PLAYERS.length);
-  return {
-    rank: i + 1,
-    user:
-      round === 0 ? PLAYERS[i] : `${PLAYERS[i % PLAYERS.length]}${round + 1}`,
-    score: 9840 - i * 87,
-  };
-});
+import { fetchLeaderboard, type LeaderboardEntry } from "./lib/scores";
 
 // Los renglones entran de abajo hacia arriba: el último sale primero y el #1 al final.
 // Las clases deben ser literales para que Tailwind las genere.
@@ -82,12 +52,52 @@ const SHADES = [
 // Medallas para el podio.
 const MEDALS = [ICONS.goldMedal, ICONS.silverMedal, ICONS.bronzeMedal];
 
+/**
+ * Los tres estados del ranking. "ready" con lista vacía y "error" se ven
+ * distinto: uno significa que nadie jugó todavía, el otro que no se pudo
+ * consultar, y confundirlos deja al usuario creyendo que perdió sus puntajes.
+ */
+type RankingState =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "ready"; entries: LeaderboardEntry[] };
+
 export default function Home() {
   const { t } = useSettings();
+  const [ranking, setRanking] = useState<RankingState>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLeaderboard().then((entries) => {
+      if (cancelled) return;
+      setRanking(
+        entries === null ? { status: "error" } : { status: "ready", entries },
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const entries = ranking.status === "ready" ? ranking.entries : [];
 
   return (
     <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 py-14 md:flex-row md:items-center md:gap-10">
-      <AuthButton />
+      {/* Apilados en un solo contenedor fijo: así se acomodan solos sin
+          importar cuánto mida cada uno (ícono solo en mobile, con texto
+          desde sm), en vez de calcular a mano dónde empieza el segundo. */}
+      <div className="fixed top-4 left-4 z-40 flex flex-col items-start gap-2">
+        <AuthButton />
+        <Link
+          href="/history"
+          className="card-base bg-card-face text-card-ink flex -skew-x-6 items-center gap-2 px-4 py-2.5 transition-transform hover:scale-105 active:scale-95"
+        >
+          <span className="font-display flex skew-x-6 items-center gap-2 text-xs">
+            <HistoryIcon className="h-5 w-5" />
+            <span className="hidden sm:inline">{t("home.historyLink")}</span>
+          </span>
+        </Link>
+      </div>
       {/* ---- Panel izquierdo: título + botón PLAY ---- */}
       <section className="flex flex-col items-center justify-center gap-6 text-center md:w-[42%]">
         {/* Mascota: cerebro animado, flotando. */}
@@ -136,16 +146,33 @@ export default function Home() {
           {t("home.rankingTitle")}
           <Image src={ICONS.trophy} alt="" width={18} height={18} />
         </p>
+        {ranking.status === "loading" && (
+          <p className="font-display text-cream/40 animate-pulse px-6 text-center text-[10px] tracking-widest">
+            {t("home.rankingLoading")}
+          </p>
+        )}
+        {ranking.status === "error" && (
+          <p className="font-sans text-chip-red/90 px-6 text-center text-sm">
+            {t("home.rankingError")}
+          </p>
+        )}
+        {ranking.status === "ready" && ranking.entries.length === 0 && (
+          <p className="font-sans text-cream/55 px-6 text-center text-sm">
+            {t("home.rankingEmpty")}
+          </p>
+        )}
+
         <ol className="flex flex-col gap-2.5">
-          {ranking.map(({ rank, user, score }) => {
+          {entries.map(({ rank, userId, name: user, score }) => {
             const zoom =
               rank <= 3 ? "transition-transform group-hover:scale-110" : "";
             const medal = rank <= 3 ? MEDALS[rank - 1] : null;
             // La entrada y el hover van en elementos distintos: si compartieran
             // la propiedad animation, salir del hover relanzaría la entrada.
             const card = (
-              <div
-                className={`group card-base -skew-x-6 hover:animate-row-stretch ${
+              <Link
+                href={`/profile/${userId}?name=${encodeURIComponent(user)}`}
+                className={`group card-base block -skew-x-6 hover:animate-row-stretch ${
                   rank === 1
                     ? "card-chrome ring-2 ring-white/70"
                     : SHADES[Math.min(SHADES.length - 1, rank - 1)]
@@ -191,11 +218,11 @@ export default function Home() {
                     {score}
                   </span>
                 </div>
-              </div>
+              </Link>
             );
             return (
               <li
-                key={rank}
+                key={userId}
                 className={`animate-row-in motion-reduce:animate-none ${
                   rank <= STAGGER.length
                     ? STAGGER[STAGGER.length - rank]

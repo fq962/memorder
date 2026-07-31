@@ -120,9 +120,9 @@ Abre [http://localhost:3000](http://localhost:3000).
 ## TODO
 
 - [x] **Agregar sonidos** — feedback al mostrar palabras, acertar, fallar y *Game Over*.
-- [ ] **Mejorar la puntuación** — revisar multiplicadores, bonificaciones y balance entre rondas.
+- [x] **Mejorar la puntuación** — revisar multiplicadores, bonificaciones y balance entre rondas.
 - [x] **Migrar a otra biblioteca de drag and drop** — reemplazar el DnD nativo por una librería (p. ej. `@dnd-kit/core`) para mejor UX en móvil y animaciones al reordenar.
-- [ ] **Ranking real** — persistir puntuaciones y mostrar un top global en la pantalla principal.
+- [x] **Ranking real** — persistir puntuaciones y mostrar un top global en la pantalla principal.
 - [ ] **Modos de juego** — contrarreloj, práctica sin *Game Over*, dificultad manual.
 - [x] **Internacionalización** — soporte para más idiomas en el banco de palabras.
 - [ ] **Compartir mi resultado** — posibilidad de compartir mis resultados por whatsapp para que sea fácil la distribución del juego.

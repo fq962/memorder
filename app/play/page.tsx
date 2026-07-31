@@ -13,6 +13,11 @@ import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
 import { setPlaying } from "../lib/hud";
 import { useSettings } from "../lib/settings";
+import { useAuth } from "../lib/auth";
+import { saveScore } from "../lib/scores";
+import { savePendingRun } from "../lib/pendingRun";
+import LoginBanner from "../components/LoginBanner";
+import ShareRunButton from "../components/ShareRunButton";
 import { ICONS } from "../lib/icons";
 import { createRng, newSeed, normalizeSeed, type Rng } from "../lib/rng";
 import {
@@ -305,6 +310,7 @@ function SeedEntry({ onPlay }: { onPlay: (seed: string) => void }) {
 
 export default function PlayPage() {
   const { language, t } = useSettings();
+  const { user, signInWithGoogle } = useAuth();
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
@@ -336,6 +342,12 @@ export default function PlayPage() {
   // Seed de la partida en curso: se enseña en el Game Over para poder
   // repetirla. null antes de la primera partida.
   const [seed, setSeed] = useState<string | null>(null);
+  // true si la partida se jugó con una semilla elegida (pegada en
+  // SeedEntry o "MISMA SEMILLA"), no una generada al azar al pulsar
+  // COMENZAR. Esas runs no puntúan: el resultado ya se conoce de antemano
+  // (o se compartió), así que guardarlas dejaría inflar el ranking o el
+  // historial repitiendo una semilla favorable.
+  const [seedIsCustom, setSeedIsCustom] = useState(false);
 
   /** Multiplicador de puntos de la ronda: solo lo sube el comodín ×1.5. */
   const boost = applied === "x1-5" ? X15_BOOST : 1;
@@ -346,6 +358,10 @@ export default function PlayPage() {
   const rngRef = useRef<Rng | null>(null);
   // Palabras de las últimas 5 rondas, para no repetirlas.
   const recentRef = useRef<string[][]>([]);
+  // Comodines que cayeron en esta run, en el orden en que aparecieron: se
+  // guardan junto al resto de la partida para el historial y se le pasan al
+  // botón de compartir, así que viven en estado (no en ref) a propósito.
+  const [collectedJokers, setCollectedJokers] = useState<JokerId[]>([]);
   // Última ronda en la que ya se tiró por comodín: una tirada por ronda.
   const rolledRoundRef = useRef(0);
   // Ronda actual en una ref para que el callback del cronómetro sea estable.
@@ -686,6 +702,7 @@ export default function PlayPage() {
           if (dropped) {
             playSound("correct-round", { rate: 0.85 });
             setJoker(dropped);
+            setCollectedJokers((list) => [...list, dropped]);
           }
         }
       } else {
@@ -712,6 +729,50 @@ export default function PlayPage() {
   ]);
 
   /**
+   * Guarda la partida al terminar, una sola vez.
+   *
+   * La guarda tiene que existir: el efecto se vuelve a lanzar en cada render
+   * mientras dure el Game Over (y en desarrollo React monta dos veces), y sin
+   * ella la misma run entraría repetida en la tabla. Se marca por seed, así
+   * que repetir la MISMA semilla sí vuelve a guardar: es otra partida.
+   *
+   * Las runs con semilla elegida (ver seedIsCustom) también se guardan, para
+   * que aparezcan en el historial y en el perfil — pero marcadas, para que
+   * el ranking (leaderboard() en Supabase) las excluya y no se pueda inflar
+   * el puntaje jugando una semilla ya conocida.
+   *
+   * Sin sesión no se guarda en Supabase (la tabla exige un user_id y la
+   * política RLS solo acepta el del usuario logueado), pero se deja en
+   * localStorage por si el jugador se loguea justo ahora desde el banner del
+   * Game Over: PendingRunSync la recoge y la guarda apenas haya sesión.
+   */
+  const savedRunRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase !== "gameover" || !seed) return;
+    if (savedRunRef.current === seed) return;
+
+    savedRunRef.current = seed;
+    const run = {
+      score,
+      roundReached: round,
+      wordsCorrect,
+      seed,
+      language,
+      jokers: collectedJokers,
+      seedIsCustom,
+    };
+    if (user) {
+      void saveScore(user.id, run);
+    } else {
+      savePendingRun(run);
+    }
+    // score, round y wordsCorrect quedan fuera de las dependencias a
+    // propósito: al llegar al Game Over ya no cambian, y listarlos solo
+    // abriría la puerta a un segundo guardado si alguno se actualizara tarde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, seed, seedIsCustom, user, language, collectedJokers]);
+
+  /**
    * Arranca una partida: crea el dado que decidirá palabras, reparto y
    * comodines de toda la run.
    *
@@ -731,7 +792,12 @@ export default function PlayPage() {
     const fresh = requested ?? newSeed();
     rngRef.current = createRng(fresh);
     setSeed(fresh);
+    setSeedIsCustom(requested !== undefined);
+    // Partida nueva, guardado nuevo: si no se limpiara, repetir la misma
+    // semilla no registraría el segundo intento.
+    savedRunRef.current = null;
     recentRef.current = [];
+    setCollectedJokers([]);
     rolledRoundRef.current = 0;
     setJoker(null);
     setHeld(null);
@@ -1148,6 +1214,24 @@ export default function PlayPage() {
             </span>
           </p>
 
+          {!user ? (
+            <LoginBanner
+              message={
+                seedIsCustom
+                  ? "play.gameoverLoginBannerCustom"
+                  : "play.gameoverLoginBanner"
+              }
+              cta="play.gameoverLoginCta"
+              onLogin={() => void signInWithGoogle()}
+            />
+          ) : (
+            seedIsCustom && (
+              <p className="font-sans text-cream/45 max-w-sm text-center text-xs">
+                {t("play.gameoverCustomSeedNotice")}
+              </p>
+            )
+          )}
+
           {seed && <SeedChip seed={seed} />}
 
           <div className="flex flex-wrap justify-center gap-4">
@@ -1172,6 +1256,15 @@ export default function PlayPage() {
                   {t("play.gameoverSameSeed")}
                 </span>
               </button>
+            )}
+            {seed && (
+              <ShareRunButton
+                score={score}
+                round={round}
+                wordsCorrect={wordsCorrect}
+                seed={seed}
+                jokers={collectedJokers}
+              />
             )}
             <Link
               href="/"

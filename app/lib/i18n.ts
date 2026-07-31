@@ -35,6 +35,10 @@ const es = {
     "Memoriza el orden de las palabras y reconstrúyelo. Un error y",
   "home.descriptionBoom": "boom 💥",
   "home.rankingTitle": "TOP CEREBROS",
+  "home.rankingLoading": "CARGANDO PUNTAJES…",
+  "home.rankingEmpty":
+    "Todavía no hay puntajes. Jugá una partida y estrenalo vos.",
+  "home.rankingError": "No se pudo cargar el ranking. Probá de nuevo más tarde.",
 
   "play.round": "RONDA",
   "play.idleDescriptionPre":
@@ -86,6 +90,39 @@ const es = {
   "play.gameoverSameSeed": "🔁 MISMA SEMILLA",
   "play.gameoverRetry": "🔁 OTRA VEZ",
   "play.gameoverRanking": "RANKING",
+  "play.gameoverLoginBanner":
+    "Iniciá sesión para guardar esta puntuación y que aparezca en el ranking.",
+  "play.gameoverLoginBannerCustom":
+    "Iniciá sesión para guardar esta partida en tu historial. No suma al ranking: jugaste con una semilla elegida.",
+  "play.gameoverLoginCta": "Iniciar sesión y guardar",
+  "play.gameoverCustomSeedNotice":
+    "Esta partida no cuenta para el ranking: jugaste con una semilla elegida. Ya quedó guardada en tu historial.",
+  "play.gameoverShare": "📤 COMPARTIR",
+  "play.gameoverShareGenerating": "Generando…",
+  "play.gameoverShareFallbackHint":
+    "Se descargó tu tarjeta. Adjuntala en WhatsApp para compartirla.",
+  "share.inviteText":
+    "Llegué a la ronda {round} con {score} puntos en MEMORDER 🧠🔥 ¿Te animás a superarme?",
+  "share.jokersLabel": "COMODINES CONSEGUIDOS",
+
+  "history.title": "MIS PARTIDAS",
+  "history.loading": "CARGANDO HISTORIAL…",
+  "history.error": "No se pudo cargar el historial. Probá de nuevo más tarde.",
+  "history.empty": "Todavía no jugaste ninguna partida logueado.",
+  "history.loginCta": "Iniciá sesión para ver tu historial de partidas.",
+  "history.round": "Ronda",
+  "history.score": "Puntos",
+  "history.jokersNone": "—",
+  "history.customBadge": "semilla propia",
+  "home.historyLink": "Historial",
+
+  "userProfile.loading": "CARGANDO PERFIL…",
+  "userProfile.error": "No se pudo cargar el perfil. Probá de nuevo más tarde.",
+  "userProfile.officialSection": "Mejores runs oficiales",
+  "userProfile.officialHint": "Semilla al azar: las que cuentan para el ranking.",
+  "userProfile.customSection": "Mejores runs con semilla propia",
+  "userProfile.customHint": "Semilla elegida: no suman al ranking.",
+  "userProfile.empty": "Todavía no hay partidas en esta categoría.",
 
   "settings.open": "Ajustes",
   "settings.title": "OPCIONES",
@@ -133,6 +170,9 @@ const en: Record<keyof typeof es, string> = {
     "Memorize the order of the words and rebuild it. One mistake and",
   "home.descriptionBoom": "boom 💥",
   "home.rankingTitle": "TOP BRAINS",
+  "home.rankingLoading": "LOADING SCORES…",
+  "home.rankingEmpty": "No scores yet. Play a run and be the first.",
+  "home.rankingError": "Couldn't load the ranking. Try again later.",
 
   "play.round": "ROUND",
   "play.idleDescriptionPre":
@@ -184,6 +224,39 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverSameSeed": "🔁 SAME SEED",
   "play.gameoverRetry": "🔁 TRY AGAIN",
   "play.gameoverRanking": "RANKING",
+  "play.gameoverLoginBanner":
+    "Sign in to save this score and get it on the leaderboard.",
+  "play.gameoverLoginBannerCustom":
+    "Sign in to save this run to your history. It won't count for the leaderboard: you played a chosen seed.",
+  "play.gameoverLoginCta": "Sign in and save",
+  "play.gameoverCustomSeedNotice":
+    "This run doesn't count for the leaderboard: you played a chosen seed. It's already saved to your history.",
+  "play.gameoverShare": "📤 SHARE",
+  "play.gameoverShareGenerating": "Generating…",
+  "play.gameoverShareFallbackHint":
+    "Your card was downloaded. Attach it on WhatsApp to share it.",
+  "share.inviteText":
+    "I reached round {round} with {score} points on MEMORDER 🧠🔥 Think you can beat me?",
+  "share.jokersLabel": "JOKERS EARNED",
+
+  "history.title": "MY RUNS",
+  "history.loading": "LOADING HISTORY…",
+  "history.error": "Couldn't load your history. Try again later.",
+  "history.empty": "You haven't played any signed-in runs yet.",
+  "history.loginCta": "Sign in to see your run history.",
+  "history.round": "Round",
+  "history.score": "Score",
+  "history.jokersNone": "—",
+  "history.customBadge": "chosen seed",
+  "home.historyLink": "History",
+
+  "userProfile.loading": "LOADING PROFILE…",
+  "userProfile.error": "Couldn't load this profile. Try again later.",
+  "userProfile.officialSection": "Best official runs",
+  "userProfile.officialHint": "Random seed: these count for the leaderboard.",
+  "userProfile.customSection": "Best chosen-seed runs",
+  "userProfile.customHint": "Chosen seed: these don't count for the leaderboard.",
+  "userProfile.empty": "No runs in this category yet.",
 
   "settings.open": "Settings",
   "settings.title": "OPTIONS",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, Pixelify_Sans } from "next/font/google";
 import SettingsMenu from "./components/SettingsMenu";
+import PendingRunSync from "./components/PendingRunSync";
 import { SettingsProvider } from "./lib/settings";
 import { AuthProvider } from "./lib/auth";
 import { ProfileProvider } from "./lib/profile";
@@ -49,6 +50,7 @@ export default function RootLayout({
           <AuthProvider>
             <ProfileProvider>
               <SettingsMenu />
+              <PendingRunSync />
               {children}
             </ProfileProvider>
           </AuthProvider>
