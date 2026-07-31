@@ -93,6 +93,8 @@ const es = {
   "play.gameoverLoginBanner":
     "Iniciá sesión para guardar esta puntuación y que aparezca en el ranking.",
   "play.gameoverLoginCta": "Iniciar sesión y guardar",
+  "play.gameoverCustomSeedNotice":
+    "Esta partida no cuenta para el ranking ni el historial: jugaste con una semilla elegida.",
   "play.gameoverShare": "📤 COMPARTIR",
   "play.gameoverShareGenerating": "Generando…",
   "play.gameoverShareFallbackHint":
@@ -214,6 +216,8 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverLoginBanner":
     "Sign in to save this score and get it on the leaderboard.",
   "play.gameoverLoginCta": "Sign in and save",
+  "play.gameoverCustomSeedNotice":
+    "This run doesn't count for the leaderboard or history: you played a chosen seed.",
   "play.gameoverShare": "📤 SHARE",
   "play.gameoverShareGenerating": "Generating…",
   "play.gameoverShareFallbackHint":

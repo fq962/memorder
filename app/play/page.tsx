@@ -342,6 +342,12 @@ export default function PlayPage() {
   // Seed de la partida en curso: se enseña en el Game Over para poder
   // repetirla. null antes de la primera partida.
   const [seed, setSeed] = useState<string | null>(null);
+  // true si la partida se jugó con una semilla elegida (pegada en
+  // SeedEntry o "MISMA SEMILLA"), no una generada al azar al pulsar
+  // COMENZAR. Esas runs no puntúan: el resultado ya se conoce de antemano
+  // (o se compartió), así que guardarlas dejaría inflar el ranking o el
+  // historial repitiendo una semilla favorable.
+  const [seedIsCustom, setSeedIsCustom] = useState(false);
 
   /** Multiplicador de puntos de la ronda: solo lo sube el comodín ×1.5. */
   const boost = applied === "x1-5" ? X15_BOOST : 1;
@@ -728,7 +734,10 @@ export default function PlayPage() {
    * La guarda tiene que existir: el efecto se vuelve a lanzar en cada render
    * mientras dure el Game Over (y en desarrollo React monta dos veces), y sin
    * ella la misma run entraría repetida en la tabla. Se marca por seed, así
-   * que repetir la MISMA semilla sí vuelve a guardar: es otra partida.
+   * que repetir la MISMA semilla sí vuelve a guardar... salvo que sea
+   * justamente una semilla elegida (ver seedIsCustom): esas no cuentan, para
+   * no poder inflar el ranking o el historial jugando una semilla ya
+   * conocida (pegada a mano o repetida con "MISMA SEMILLA").
    *
    * Sin sesión no se guarda en Supabase (la tabla exige un user_id y la
    * política RLS solo acepta el del usuario logueado), pero se deja en
@@ -737,7 +746,7 @@ export default function PlayPage() {
    */
   const savedRunRef = useRef<string | null>(null);
   useEffect(() => {
-    if (phase !== "gameover" || !seed) return;
+    if (phase !== "gameover" || !seed || seedIsCustom) return;
     if (savedRunRef.current === seed) return;
 
     savedRunRef.current = seed;
@@ -758,7 +767,7 @@ export default function PlayPage() {
     // propósito: al llegar al Game Over ya no cambian, y listarlos solo
     // abriría la puerta a un segundo guardado si alguno se actualizara tarde.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, seed, user, language, collectedJokers]);
+  }, [phase, seed, seedIsCustom, user, language, collectedJokers]);
 
   /**
    * Arranca una partida: crea el dado que decidirá palabras, reparto y
@@ -780,6 +789,7 @@ export default function PlayPage() {
     const fresh = requested ?? newSeed();
     rngRef.current = createRng(fresh);
     setSeed(fresh);
+    setSeedIsCustom(requested !== undefined);
     // Partida nueva, guardado nuevo: si no se limpiara, repetir la misma
     // semilla no registraría el segundo intento.
     savedRunRef.current = null;
@@ -1201,12 +1211,18 @@ export default function PlayPage() {
             </span>
           </p>
 
-          {!user && (
-            <LoginBanner
-              message="play.gameoverLoginBanner"
-              cta="play.gameoverLoginCta"
-              onLogin={() => void signInWithGoogle()}
-            />
+          {seedIsCustom ? (
+            <p className="font-sans text-cream/45 max-w-sm text-center text-xs">
+              {t("play.gameoverCustomSeedNotice")}
+            </p>
+          ) : (
+            !user && (
+              <LoginBanner
+                message="play.gameoverLoginBanner"
+                cta="play.gameoverLoginCta"
+                onLogin={() => void signInWithGoogle()}
+              />
+            )
           )}
 
           {seed && <SeedChip seed={seed} />}
