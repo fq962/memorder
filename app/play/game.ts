@@ -1,3 +1,4 @@
+import type { Rng } from "../lib/rng";
 import { wordBank, type Difficulty, type Language } from "./words";
 
 export type Round = {
@@ -53,22 +54,18 @@ function allWords(language: Language): readonly string[] {
   return words;
 }
 
-export function shuffle<T>(items: readonly T[]): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-/** Baraja garantizando que el resultado no coincida con el orden original. */
-export function shuffleDistinct(words: string[]): string[] {
+/**
+ * Baraja garantizando que el resultado no coincida con el orden original.
+ *
+ * Toma el dado de la partida (ver app/lib/rng.ts): el reparto forma parte de
+ * lo que reproduce el seed, así que aquí no se usa Math.random().
+ */
+export function shuffleDistinct(rng: Rng, words: string[]): string[] {
   if (words.length < 2) return [...words];
-  let out = shuffle(words);
+  let out = rng.shuffle(words);
   let guard = 0;
   while (out.every((w, i) => w === words[i]) && guard++ < 20) {
-    out = shuffle(words);
+    out = rng.shuffle(words);
   }
   return out;
 }
@@ -134,6 +131,7 @@ export function memorizeMs(words: string[]): number {
 }
 
 export function buildRound(
+  rng: Rng,
   round: number,
   recentWords: string[],
   language: Language = "es",
@@ -146,7 +144,7 @@ export function buildRound(
   const fresh = pool.filter((w) => !recent.has(w));
   const source = fresh.length >= count ? fresh : pool;
 
-  const words = shuffle(source).slice(0, count);
+  const words = rng.shuffle(source).slice(0, count);
   const totalMs = memorizeMs(words);
 
   return { words, totalMs, perWordMs: totalMs / words.length };

@@ -42,6 +42,12 @@ const es = {
   "play.idleDescriptionBold": "Un solo error",
   "play.idleDescriptionPost": "termina la partida.",
   "play.start": "▶ COMENZAR",
+  "play.seedEntryToggle": "🎲 JUGAR UNA SEMILLA",
+  "play.seedEntryLabel": "Pega la semilla de una partida",
+  "play.seedEntryPlay": "JUGAR",
+  "play.seedEntryHint": "Misma semilla, mismas palabras y mismos comodines.",
+  "play.seedEntryWillPlay": "Se jugará:",
+  "play.seedEntryInvalid": "Esa semilla no tiene caracteres válidos.",
 
   "play.showingHint": "MEMORIZA EL ORDEN 👀",
 
@@ -74,6 +80,10 @@ const es = {
   "play.gameoverRoundReached": "Ronda alcanzada",
   "play.gameoverWordsCorrect": "Palabras acertadas",
   "play.gameoverCorrectOrder": "El orden correcto era:",
+  "play.gameoverSeed": "Semilla de la partida",
+  "play.gameoverSeedHint": "toca para copiar",
+  "play.gameoverSeedCopied": "¡COPIADO! ✅",
+  "play.gameoverSameSeed": "🔁 MISMA SEMILLA",
   "play.gameoverRetry": "🔁 OTRA VEZ",
   "play.gameoverRanking": "RANKING",
 
@@ -130,6 +140,12 @@ const en: Record<keyof typeof es, string> = {
   "play.idleDescriptionBold": "One mistake",
   "play.idleDescriptionPost": "ends the run.",
   "play.start": "▶ START",
+  "play.seedEntryToggle": "🎲 PLAY A SEED",
+  "play.seedEntryLabel": "Paste a run seed",
+  "play.seedEntryPlay": "PLAY",
+  "play.seedEntryHint": "Same seed, same words and same jokers.",
+  "play.seedEntryWillPlay": "Will play:",
+  "play.seedEntryInvalid": "That seed has no valid characters.",
 
   "play.showingHint": "MEMORIZE THE ORDER 👀",
 
@@ -162,6 +178,10 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverRoundReached": "Round reached",
   "play.gameoverWordsCorrect": "Words correct",
   "play.gameoverCorrectOrder": "The correct order was:",
+  "play.gameoverSeed": "Run seed",
+  "play.gameoverSeedHint": "tap to copy",
+  "play.gameoverSeedCopied": "COPIED! ✅",
+  "play.gameoverSameSeed": "🔁 SAME SEED",
   "play.gameoverRetry": "🔁 TRY AGAIN",
   "play.gameoverRanking": "RANKING",
 
