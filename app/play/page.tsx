@@ -881,6 +881,7 @@ export default function PlayPage() {
                   <JokerCard
                     joker={JOKERS[id]}
                     width={26}
+                    animated={false}
                     className="rounded-[3px] ring-2 ring-[var(--holo-glow)] [filter:drop-shadow(0_0_10px_var(--holo-glow))]"
                   />
                 </motion.span>

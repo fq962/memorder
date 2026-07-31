@@ -43,7 +43,7 @@ export default function JokerChoice({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black/80 px-6 py-10 text-center backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black/90 px-4 py-10 text-center"
     >
       <motion.p
         initial={{ opacity: 0, y: -12 }}
@@ -54,7 +54,12 @@ export default function JokerChoice({
         {t("joker.chooseOne")}
       </motion.p>
 
-      <div className="flex flex-wrap items-start justify-center gap-6">
+      {/* nowrap + scroll horizontal a propósito: en pantallas angostas las dos
+          cartas deben seguir yendo de izquierda a derecha en el orden en que
+          salieron, nunca apilarse una encima de la otra (con flex-wrap el
+          navegador las bajaba de línea en móvil). Si no entran las dos,
+          que se deslice, no que se reordene verticalmente. */}
+      <div className="scrollbar-hide flex w-full flex-nowrap items-start justify-start gap-4 overflow-x-auto px-4 sm:justify-center sm:gap-6 sm:px-0">
         {jokers.map((id, i) => {
           const joker = JOKERS[id];
           return (
@@ -70,7 +75,7 @@ export default function JokerChoice({
                 stiffness: 260,
                 damping: 18,
               }}
-              className="group flex w-[190px] flex-col items-center gap-3 transition-transform duration-150 hover:scale-105 active:scale-95"
+              className="group flex w-[170px] shrink-0 flex-col items-center gap-3 transition-transform duration-150 hover:scale-105 active:scale-95 sm:w-[190px]"
             >
               <JokerCard
                 joker={joker}
