@@ -54,7 +54,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     client
       .from("profiles")
-      .select("username, username_changed_at")
+      .select("display_name, username_changed_at")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -62,7 +62,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setFetched(
           data
             ? {
-                username: data.username,
+                username: data.display_name,
                 usernameChangedAt: data.username_changed_at,
               }
             : null,
@@ -90,9 +90,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       ];
       return { ok: false, code: known.includes(code) ? code : "unknown" };
     }
-    const row = data as { username: string; username_changed_at: string };
+    const row = data as { display_name: string; username_changed_at: string };
     setFetched({
-      username: row.username,
+      username: row.display_name,
       usernameChangedAt: row.username_changed_at,
     });
     return { ok: true };

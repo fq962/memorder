@@ -35,6 +35,10 @@ const es = {
     "Memoriza el orden de las palabras y reconstrúyelo. Un error y",
   "home.descriptionBoom": "boom 💥",
   "home.rankingTitle": "TOP CEREBROS",
+  "home.rankingLoading": "CARGANDO PUNTAJES…",
+  "home.rankingEmpty":
+    "Todavía no hay puntajes. Jugá una partida y estrenalo vos.",
+  "home.rankingError": "No se pudo cargar el ranking. Probá de nuevo más tarde.",
 
   "play.round": "RONDA",
   "play.idleDescriptionPre":
@@ -133,6 +137,9 @@ const en: Record<keyof typeof es, string> = {
     "Memorize the order of the words and rebuild it. One mistake and",
   "home.descriptionBoom": "boom 💥",
   "home.rankingTitle": "TOP BRAINS",
+  "home.rankingLoading": "LOADING SCORES…",
+  "home.rankingEmpty": "No scores yet. Play a run and be the first.",
+  "home.rankingError": "Couldn't load the ranking. Try again later.",
 
   "play.round": "ROUND",
   "play.idleDescriptionPre":

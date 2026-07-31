@@ -13,6 +13,8 @@ import calaca from "../images/calaca.png";
 import { playSound, playTick, preloadSounds, unlockAudio } from "../lib/sounds";
 import { setPlaying } from "../lib/hud";
 import { useSettings } from "../lib/settings";
+import { useAuth } from "../lib/auth";
+import { saveScore } from "../lib/scores";
 import { ICONS } from "../lib/icons";
 import { createRng, newSeed, normalizeSeed, type Rng } from "../lib/rng";
 import {
@@ -305,6 +307,7 @@ function SeedEntry({ onPlay }: { onPlay: (seed: string) => void }) {
 
 export default function PlayPage() {
   const { language, t } = useSettings();
+  const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
@@ -712,6 +715,37 @@ export default function PlayPage() {
   ]);
 
   /**
+   * Guarda la partida al terminar, una sola vez.
+   *
+   * La guarda tiene que existir: el efecto se vuelve a lanzar en cada render
+   * mientras dure el Game Over (y en desarrollo React monta dos veces), y sin
+   * ella la misma run entraría repetida en la tabla. Se marca por seed, así
+   * que repetir la MISMA semilla sí vuelve a guardar: es otra partida.
+   *
+   * Sin sesión no se guarda nada: la tabla exige un user_id y la política RLS
+   * solo acepta el del usuario logueado. Se juega igual, simplemente no
+   * puntúa para el ranking.
+   */
+  const savedRunRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase !== "gameover" || !seed || !user) return;
+    if (savedRunRef.current === seed) return;
+
+    savedRunRef.current = seed;
+    void saveScore(user.id, {
+      score,
+      roundReached: round,
+      wordsCorrect,
+      seed,
+      language,
+    });
+    // score, round y wordsCorrect quedan fuera de las dependencias a
+    // propósito: al llegar al Game Over ya no cambian, y listarlos solo
+    // abriría la puerta a un segundo guardado si alguno se actualizara tarde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, seed, user, language]);
+
+  /**
    * Arranca una partida: crea el dado que decidirá palabras, reparto y
    * comodines de toda la run.
    *
@@ -731,6 +765,9 @@ export default function PlayPage() {
     const fresh = requested ?? newSeed();
     rngRef.current = createRng(fresh);
     setSeed(fresh);
+    // Partida nueva, guardado nuevo: si no se limpiara, repetir la misma
+    // semilla no registraría el segundo intento.
+    savedRunRef.current = null;
     recentRef.current = [];
     rolledRoundRef.current = 0;
     setJoker(null);
