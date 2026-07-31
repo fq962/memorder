@@ -19,6 +19,12 @@ export type Run = {
   language: Language;
   /** Comodines que cayeron durante la run, en el orden en que aparecieron. */
   jokers: JokerId[];
+  /**
+   * true si se jugó con una semilla elegida (pegada o repetida con "MISMA
+   * SEMILLA"), no una generada al azar. Se guarda igual (historial y
+   * perfil), pero el ranking (ver leaderboard() en Supabase) la excluye.
+   */
+  seedIsCustom: boolean;
 };
 
 /** Una fila del ranking: el mejor puntaje de un usuario. */
@@ -50,6 +56,7 @@ export async function saveScore(userId: string, run: Run): Promise<boolean> {
     seed: run.seed,
     language: run.language,
     jokers: run.jokers,
+    seed_is_custom: run.seedIsCustom,
   });
 
   if (error) {
@@ -100,7 +107,7 @@ export async function fetchLeaderboard(
   }));
 }
 
-/** Una partida propia, tal como se lista en el historial. */
+/** Una partida (propia o ajena), tal como se lista en historial y perfil. */
 export type HistoryEntry = {
   score: number;
   roundReached: number;
@@ -108,6 +115,7 @@ export type HistoryEntry = {
   seed: string;
   jokers: JokerId[];
   createdAt: string;
+  seedIsCustom: boolean;
 };
 
 /** Fila cruda de la tabla `scores`, tal como la trae el select del historial. */
@@ -118,6 +126,7 @@ type HistoryRow = {
   seed: string;
   jokers: JokerId[] | null;
   created_at: string;
+  seed_is_custom: boolean;
 };
 
 /**
@@ -138,7 +147,9 @@ export async function fetchHistory(
 
   const { data, error } = await client
     .from("scores")
-    .select("score, round_reached, words_correct, seed, jokers, created_at")
+    .select(
+      "score, round_reached, words_correct, seed, jokers, created_at, seed_is_custom",
+    )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -155,5 +166,92 @@ export async function fetchHistory(
     seed: row.seed,
     jokers: row.jokers ?? [],
     createdAt: row.created_at,
+    seedIsCustom: row.seed_is_custom,
   }));
+}
+
+/** Fila cruda que devuelve la función `user_top_runs` de Supabase. */
+type TopRunRow = {
+  display_name: string | null;
+  score: number;
+  round_reached: number;
+  words_correct: number;
+  seed: string;
+  jokers: JokerId[] | null;
+  created_at: string;
+};
+
+/** Perfil público de un jugador: sus mejores runs, separadas por tipo de semilla. */
+export type UserProfile = {
+  displayName: string;
+  /** Mejores runs con semilla al azar: las que cuentan para el ranking. */
+  official: HistoryEntry[];
+  /** Mejores runs con semilla elegida: no suman al ranking. */
+  custom: HistoryEntry[];
+};
+
+/**
+ * Trae el perfil público de un usuario a partir de su id: nombre y sus
+ * mejores runs, oficiales y con semilla propia por separado.
+ *
+ * Va por la función `user_top_runs` (SECURITY DEFINER, ver la migración
+ * SQL) porque lee las runs de OTRO usuario: la policy `scores_select_own`
+ * solo deja ver las filas propias.
+ *
+ * Devuelve null si la consulta falla, mismo criterio que fetchLeaderboard.
+ */
+export async function fetchUserProfile(
+  userId: string,
+  limit = 5,
+): Promise<UserProfile | null> {
+  const client = supabase;
+  if (!client) return null;
+
+  const [officialRes, customRes] = await Promise.all([
+    client.rpc("user_top_runs", {
+      target_user: userId,
+      only_custom: false,
+      max_rows: limit,
+    }),
+    client.rpc("user_top_runs", {
+      target_user: userId,
+      only_custom: true,
+      max_rows: limit,
+    }),
+  ]);
+
+  if (officialRes.error || customRes.error) {
+    if (officialRes.error) {
+      console.error("No se pudo cargar el perfil:", officialRes.error.message);
+    }
+    if (customRes.error) {
+      console.error("No se pudo cargar el perfil:", customRes.error.message);
+    }
+    return null;
+  }
+
+  const toEntries = (rows: TopRunRow[] | null, isCustom: boolean): HistoryEntry[] =>
+    (rows ?? []).map((row) => ({
+      score: row.score,
+      roundReached: row.round_reached,
+      wordsCorrect: row.words_correct,
+      seed: row.seed,
+      jokers: row.jokers ?? [],
+      createdAt: row.created_at,
+      seedIsCustom: isCustom,
+    }));
+
+  const official = toEntries(officialRes.data as TopRunRow[] | null, false);
+  const custom = toEntries(customRes.data as TopRunRow[] | null, true);
+  const firstRow = (officialRes.data as TopRunRow[] | null)?.[0] ??
+    (customRes.data as TopRunRow[] | null)?.[0];
+
+  return {
+    // Sin runs en ninguna categoría no debería pasar (para estar acá, el
+    // usuario salió del ranking o de un link con nombre), pero por las
+    // dudas no se deja en blanco.
+    displayName: firstRow?.display_name ?? "anónimo",
+    official,
+    custom,
+  };
 }

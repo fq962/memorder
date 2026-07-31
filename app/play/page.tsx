@@ -734,10 +734,12 @@ export default function PlayPage() {
    * La guarda tiene que existir: el efecto se vuelve a lanzar en cada render
    * mientras dure el Game Over (y en desarrollo React monta dos veces), y sin
    * ella la misma run entraría repetida en la tabla. Se marca por seed, así
-   * que repetir la MISMA semilla sí vuelve a guardar... salvo que sea
-   * justamente una semilla elegida (ver seedIsCustom): esas no cuentan, para
-   * no poder inflar el ranking o el historial jugando una semilla ya
-   * conocida (pegada a mano o repetida con "MISMA SEMILLA").
+   * que repetir la MISMA semilla sí vuelve a guardar: es otra partida.
+   *
+   * Las runs con semilla elegida (ver seedIsCustom) también se guardan, para
+   * que aparezcan en el historial y en el perfil — pero marcadas, para que
+   * el ranking (leaderboard() en Supabase) las excluya y no se pueda inflar
+   * el puntaje jugando una semilla ya conocida.
    *
    * Sin sesión no se guarda en Supabase (la tabla exige un user_id y la
    * política RLS solo acepta el del usuario logueado), pero se deja en
@@ -746,7 +748,7 @@ export default function PlayPage() {
    */
   const savedRunRef = useRef<string | null>(null);
   useEffect(() => {
-    if (phase !== "gameover" || !seed || seedIsCustom) return;
+    if (phase !== "gameover" || !seed) return;
     if (savedRunRef.current === seed) return;
 
     savedRunRef.current = seed;
@@ -757,6 +759,7 @@ export default function PlayPage() {
       seed,
       language,
       jokers: collectedJokers,
+      seedIsCustom,
     };
     if (user) {
       void saveScore(user.id, run);
@@ -1211,17 +1214,21 @@ export default function PlayPage() {
             </span>
           </p>
 
-          {seedIsCustom ? (
-            <p className="font-sans text-cream/45 max-w-sm text-center text-xs">
-              {t("play.gameoverCustomSeedNotice")}
-            </p>
+          {!user ? (
+            <LoginBanner
+              message={
+                seedIsCustom
+                  ? "play.gameoverLoginBannerCustom"
+                  : "play.gameoverLoginBanner"
+              }
+              cta="play.gameoverLoginCta"
+              onLogin={() => void signInWithGoogle()}
+            />
           ) : (
-            !user && (
-              <LoginBanner
-                message="play.gameoverLoginBanner"
-                cta="play.gameoverLoginCta"
-                onLogin={() => void signInWithGoogle()}
-              />
+            seedIsCustom && (
+              <p className="font-sans text-cream/45 max-w-sm text-center text-xs">
+                {t("play.gameoverCustomSeedNotice")}
+              </p>
             )
           )}
 

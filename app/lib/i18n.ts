@@ -92,9 +92,11 @@ const es = {
   "play.gameoverRanking": "RANKING",
   "play.gameoverLoginBanner":
     "Iniciá sesión para guardar esta puntuación y que aparezca en el ranking.",
+  "play.gameoverLoginBannerCustom":
+    "Iniciá sesión para guardar esta partida en tu historial. No suma al ranking: jugaste con una semilla elegida.",
   "play.gameoverLoginCta": "Iniciar sesión y guardar",
   "play.gameoverCustomSeedNotice":
-    "Esta partida no cuenta para el ranking ni el historial: jugaste con una semilla elegida.",
+    "Esta partida no cuenta para el ranking: jugaste con una semilla elegida. Ya quedó guardada en tu historial.",
   "play.gameoverShare": "📤 COMPARTIR",
   "play.gameoverShareGenerating": "Generando…",
   "play.gameoverShareFallbackHint":
@@ -111,7 +113,16 @@ const es = {
   "history.round": "Ronda",
   "history.score": "Puntos",
   "history.jokersNone": "—",
+  "history.customBadge": "semilla propia",
   "home.historyLink": "Historial",
+
+  "userProfile.loading": "CARGANDO PERFIL…",
+  "userProfile.error": "No se pudo cargar el perfil. Probá de nuevo más tarde.",
+  "userProfile.officialSection": "Mejores runs oficiales",
+  "userProfile.officialHint": "Semilla al azar: las que cuentan para el ranking.",
+  "userProfile.customSection": "Mejores runs con semilla propia",
+  "userProfile.customHint": "Semilla elegida: no suman al ranking.",
+  "userProfile.empty": "Todavía no hay partidas en esta categoría.",
 
   "settings.open": "Ajustes",
   "settings.title": "OPCIONES",
@@ -215,9 +226,11 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverRanking": "RANKING",
   "play.gameoverLoginBanner":
     "Sign in to save this score and get it on the leaderboard.",
+  "play.gameoverLoginBannerCustom":
+    "Sign in to save this run to your history. It won't count for the leaderboard: you played a chosen seed.",
   "play.gameoverLoginCta": "Sign in and save",
   "play.gameoverCustomSeedNotice":
-    "This run doesn't count for the leaderboard or history: you played a chosen seed.",
+    "This run doesn't count for the leaderboard: you played a chosen seed. It's already saved to your history.",
   "play.gameoverShare": "📤 SHARE",
   "play.gameoverShareGenerating": "Generating…",
   "play.gameoverShareFallbackHint":
@@ -234,7 +247,16 @@ const en: Record<keyof typeof es, string> = {
   "history.round": "Round",
   "history.score": "Score",
   "history.jokersNone": "—",
+  "history.customBadge": "chosen seed",
   "home.historyLink": "History",
+
+  "userProfile.loading": "LOADING PROFILE…",
+  "userProfile.error": "Couldn't load this profile. Try again later.",
+  "userProfile.officialSection": "Best official runs",
+  "userProfile.officialHint": "Random seed: these count for the leaderboard.",
+  "userProfile.customSection": "Best chosen-seed runs",
+  "userProfile.customHint": "Chosen seed: these don't count for the leaderboard.",
+  "userProfile.empty": "No runs in this category yet.",
 
   "settings.open": "Settings",
   "settings.title": "OPTIONS",

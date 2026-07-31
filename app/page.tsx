@@ -170,8 +170,9 @@ export default function Home() {
             // La entrada y el hover van en elementos distintos: si compartieran
             // la propiedad animation, salir del hover relanzaría la entrada.
             const card = (
-              <div
-                className={`group card-base -skew-x-6 hover:animate-row-stretch ${
+              <Link
+                href={`/profile/${userId}?name=${encodeURIComponent(user)}`}
+                className={`group card-base block -skew-x-6 hover:animate-row-stretch ${
                   rank === 1
                     ? "card-chrome ring-2 ring-white/70"
                     : SHADES[Math.min(SHADES.length - 1, rank - 1)]
@@ -217,7 +218,7 @@ export default function Home() {
                     {score}
                   </span>
                 </div>
-              </div>
+              </Link>
             );
             return (
               <li

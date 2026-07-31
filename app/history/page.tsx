@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { useSettings } from "../lib/settings";
 import { fetchHistory, type HistoryEntry } from "../lib/scores";
-import { JOKERS } from "../lib/jokers";
-import JokerCard from "../components/JokerCard";
 import LoginBanner from "../components/LoginBanner";
+import RunRow from "../components/RunRow";
 
 /**
  * Los tres estados del historial, igual que el ranking del home: "ready" con
@@ -21,7 +20,7 @@ type HistoryState =
 
 export default function HistoryPage() {
   const { user, signInWithGoogle } = useAuth();
-  const { language, t } = useSettings();
+  const { t } = useSettings();
   const [state, setState] = useState<HistoryState>({ status: "loading" });
 
   useEffect(() => {
@@ -37,8 +36,6 @@ export default function HistoryPage() {
       cancelled = true;
     };
   }, [user]);
-
-  const locale = language === "en" ? "en-US" : "es-ES";
 
   return (
     <main className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
@@ -89,48 +86,7 @@ export default function HistoryPage() {
           {state.status === "ready" && state.entries.length > 0 && (
             <ol className="flex flex-col gap-3">
               {state.entries.map((entry, i) => (
-                <li
-                  key={`${entry.seed}-${entry.createdAt}-${i}`}
-                  className="card-base bg-card-face text-card-ink -skew-x-6 animate-row-in"
-                >
-                  <div className="flex skew-x-6 flex-wrap items-center gap-3 px-5 py-3.5 sm:gap-5">
-                    <div className="flex min-w-0 flex-col">
-                      <span className="font-sans text-card-ink/50 text-[10px]">
-                        {new Date(entry.createdAt).toLocaleDateString(locale)}
-                      </span>
-                      <span className="font-display text-chip-purple text-xs tracking-[0.14em]">
-                        {entry.seed}
-                      </span>
-                    </div>
-
-                    <div className="flex min-h-[26px] flex-1 items-center justify-center gap-1.5">
-                      {entry.jokers.length === 0 ? (
-                        <span className="font-sans text-card-ink/40 text-xs">
-                          {t("history.jokersNone")}
-                        </span>
-                      ) : (
-                        entry.jokers.map((id, idx) => (
-                          <JokerCard
-                            key={idx}
-                            joker={JOKERS[id]}
-                            width={22}
-                            className="rounded-[2px]"
-                          />
-                        ))
-                      )}
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-4">
-                      <span className="font-display text-[11px]">
-                        {t("history.round")}{" "}
-                        <span className="tabular-nums">{entry.roundReached}</span>
-                      </span>
-                      <span className="font-display text-chip-gold text-sm tabular-nums">
-                        {entry.score}
-                      </span>
-                    </div>
-                  </div>
-                </li>
+                <RunRow key={`${entry.seed}-${entry.createdAt}-${i}`} run={entry} />
               ))}
             </ol>
           )}
