@@ -94,16 +94,35 @@ Todo el SEO sale de un solo archivo de constantes: [`app/lib/site.ts`](app/lib/s
 | X / Twitter | `app/layout.tsx` + `app/twitter-image.tsx` | `twitter:card` (`summary_large_image`), `twitter:title`, `twitter:description`, `twitter:image` (+ `alt`, `width`, `height`) y las columnitas `twitter:label1/data1` y `label2/data2` |
 | Datos estructurados | `app/layout.tsx` (JSON-LD) | `WebSite` + `VideoGame` de schema.org: género, plataformas, autores y `Offer` a precio 0 |
 | Imágenes sociales | `app/lib/og.tsx` | PNG 1200×630 dibujados con `next/og` (fieltro, título cromado y cartas), una por ruta |
+| Tarjeta de resultado | `app/share-card/route.tsx` | PNG 1080×1350 con el puntaje de la partida, el que se adjunta al compartir desde el Game Over |
 | Iconos | `app/apple-icon.tsx`, `app/pwa-icon/[size]/route.tsx` | `apple-touch-icon` 180×180 y los PNG 192/512 del manifest |
 | PWA | `app/manifest.ts` | `/manifest.webmanifest` instalable, con `shortcuts` a Jugar e Historial |
 | Rastreo | `app/robots.ts`, `app/sitemap.ts` | `/robots.txt` y `/sitemap.xml` |
 | Viewport | `app/layout.tsx` (`export const viewport`) | `theme-color`, `color-scheme: dark` |
 
-Las tarjetas sociales se pueden previsualizar directo en el navegador: `/opengraph-image`, `/play/opengraph-image`, `/pwa-icon/512`.
+Las imágenes se pueden previsualizar directo en el navegador: `/opengraph-image`, `/play/opengraph-image`, `/pwa-icon/512` y `/share-card?score=48210&round=14&words=87&seed=K7P2-9MQX&lang=es&jokers=x3,free-order,x1-5`.
 
 **Qué queda fuera del índice, a propósito:** `/theme-lab` (herramienta interna), `/history` (contenido privado) y `/profile/[userId]` (URLs con UUID). Los perfiles igual conservan metadatos sociales completos, para que el link se vea bien al compartirlo.
 
-La fuente pixel de las imágenes (`public/fonts/press-start-2p.woff`) está versionada en el repo a propósito: Satori solo entiende `ttf`/`otf`/`woff` (no `woff2`) y así el build no depende de bajar nada de Google Fonts.
+### Compartir el resultado
+
+El botón **Compartir** del Game Over no dibuja nada en el cliente: pide el PNG a `/share-card` con los datos de la partida en el query y lo entrega por la Web Share API (móvil, con WhatsApp en el picker nativo) o lo descarga como respaldo (escritorio). Sale del mismo `app/lib/og.tsx` que las imágenes de Open Graph, así que lo que llega por WhatsApp tiene la misma cara que el link del juego.
+
+Dos detalles que valen la pena:
+
+- **La tarjeta respeta el tema del jugador.** [`app/lib/shareCard.ts`](app/lib/shareCard.ts) lee las variables CSS de `<html>` y manda los 10 colores empaquetados en el parámetro `c`. Funciona igual con los temas de fábrica, con los de la base de datos y con los que se agreguen mañana, sin tocar código.
+- **La respuesta se cachea como inmutable.** La imagen depende solo del query, así que compartir dos veces la misma partida no la vuelve a dibujar. Ojo al iterar sobre el diseño en local: hay que romper la caché con un parámetro extra.
+
+### Peleas conocidas con Satori
+
+Satori es el motor detrás de `next/og`, y tiene esquinas afiladas que ya costaron un rato:
+
+- Solo entiende **flexbox** — nada de `display: grid` — y todo contenedor con más de un hijo necesita `display: flex` explícito.
+- Necesita **al menos una fuente cargada** o revienta con *"No fonts are loaded"*. La pixel del juego está versionada en `public/fonts/press-start-2p.woff` a propósito: Satori lee `ttf`/`otf`/`woff` pero **no `woff2`**, que es justo lo que Google Fonts sirve a los navegadores modernos, y así ni el build ni la ruta dinámica dependen de bajar nada.
+- Una propiedad de estilo en **`undefined`** no se ignora: tira `is not iterable` o *"Invalid transform value"*. Las opcionales se agregan con spread condicional.
+- Un **`false` suelto entre los hijos** (el típico `{cond && <div/>}`) también lo hace reventar. Por eso los condicionales del JSX van como ternarios que devuelven `null`.
+- No sabe leer **`.webp`**: las cartas de comodín tienen copias en PNG bajo `public/cards/share/`, reescaladas, generadas con `sips` (el comando está en [`app/lib/jokerImages.ts`](app/lib/jokerImages.ts)).
+- `/share-card` es dinámica y lee esos archivos del disco, así que hay que declararlos en `outputFileTracingIncludes` ([`next.config.ts`](next.config.ts)) para que viajen en el bundle del servidor. Sin eso anda en local y falla en producción.
 
 ### Antes de publicar
 
@@ -137,6 +156,7 @@ app/
 ├── robots.ts                    # /robots.txt
 ├── sitemap.ts                   # /sitemap.xml
 ├── pwa-icon/[size]/route.tsx    # Iconos PNG 192/512 del manifest
+├── share-card/route.tsx         # Tarjeta de resultado de una partida (PNG)
 ├── play/
 │   ├── page.tsx                 # UI del juego (fases, drag, puntuación)
 │   ├── layout.tsx               # Metadatos de /play
@@ -149,7 +169,9 @@ app/
 ├── components/                  # Comodines, HUD, auth, compartir…
 └── lib/
     ├── site.ts                  # Constantes de marca y SEO
-    ├── og.tsx                   # Fábrica de imágenes sociales e iconos
+    ├── og.tsx                   # Fábrica de todas las imágenes generadas
+    ├── shareCard.ts             # Arma la URL de /share-card con el tema activo
+    ├── jokerImages.ts           # Cartas de comodín en data URI (servidor)
     ├── scores.ts                # Ranking, historial y perfiles
     ├── jokers.ts                # Comodines
     ├── themes*.ts               # Temas (cliente / servidor / motor)
@@ -198,7 +220,7 @@ Abre [http://localhost:3000](http://localhost:3000).
 - [x] **Ranking real** — persistir puntuaciones y mostrar un top global en la pantalla principal.
 - [ ] **Modos de juego** — contrarreloj, práctica sin *Game Over*, dificultad manual.
 - [x] **Internacionalización** — soporte para más idiomas en el banco de palabras.
-- [x] **Compartir mi resultado** — compartir la tarjeta de resultado por WhatsApp para que sea fácil la distribución del juego.
+- [x] **Compartir mi resultado** — compartir la tarjeta de resultado por WhatsApp para que sea fácil la distribución del juego. La dibuja `next/og` en el servidor, con el tema del jugador.
 - [x] **Agregar SEO** — metadatos completos, Open Graph y Twitter Cards con imágenes generadas, JSON-LD, `robots.txt`, `sitemap.xml` y manifest PWA.
 - [ ] **Mejorar visualmente el TOP** — Actualmente tiene BUGs en Mobile, además de hacerlo un poco más vivo.
 - [x] **ThemeLab** — Un editor de temas para los devs.

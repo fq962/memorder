@@ -105,6 +105,8 @@ const es = {
   "play.gameoverShareGenerating": "Generando…",
   "play.gameoverShareFallbackHint":
     "Se descargó tu tarjeta. Adjuntala en WhatsApp para compartirla.",
+  "play.gameoverShareError":
+    "No se pudo generar la tarjeta. Revisá tu conexión y probá de nuevo.",
   "share.inviteText":
     "Llegué a la ronda {round} con {score} puntos en MEMORDER 🧠🔥 ¿Te animás a superarme?",
   "share.jokersLabel": "COMODINES CONSEGUIDOS",
@@ -243,6 +245,8 @@ const en: Record<keyof typeof es, string> = {
   "play.gameoverShareGenerating": "Generating…",
   "play.gameoverShareFallbackHint":
     "Your card was downloaded. Attach it on WhatsApp to share it.",
+  "play.gameoverShareError":
+    "Couldn't generate the card. Check your connection and try again.",
   "share.inviteText":
     "I reached round {round} with {score} points on MEMORDER 🧠🔥 Think you can beat me?",
   "share.jokersLabel": "JOKERS EARNED",

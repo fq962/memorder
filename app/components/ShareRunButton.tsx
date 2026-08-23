@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { Loader2Icon, Share2Icon } from "lucide-react";
 import { useSettings } from "../lib/settings";
-import { drawShareCard } from "../lib/shareCard";
+import { buildShareCardUrl } from "../lib/shareCard";
 import type { JokerId } from "../lib/jokers";
 
 type Status = "idle" | "generating" | "shared" | "downloaded" | "error";
 
 /**
- * Genera la tarjeta de resultado (ver app/lib/shareCard.ts) y la comparte:
- * Web Share API con archivo si el navegador lo soporta (móvil, incluye
- * WhatsApp en el picker nativo), o descarga del PNG como respaldo (típico en
- * escritorio, donde no se puede adjuntar una imagen por wa.me).
+ * Pide la tarjeta de resultado a /share-card (ver app/lib/shareCard.ts para
+ * cómo se arma la URL) y la comparte: Web Share API con archivo si el
+ * navegador lo soporta (móvil, incluye WhatsApp en el picker nativo), o
+ * descarga del PNG como respaldo (típico en escritorio, donde no se puede
+ * adjuntar una imagen por wa.me).
  */
 export default function ShareRunButton({
   score,
@@ -27,27 +28,24 @@ export default function ShareRunButton({
   seed: string;
   jokers: JokerId[];
 }) {
-  const { t } = useSettings();
+  const { t, language } = useSettings();
   const [status, setStatus] = useState<Status>("idle");
 
   async function handleShare() {
     setStatus("generating");
     try {
-      const canvas = document.createElement("canvas");
-      await drawShareCard(canvas, {
+      const url = buildShareCardUrl({
         score,
         round,
         wordsCorrect,
         seed,
         jokers,
-        siteUrl: window.location.origin,
-        t,
+        language,
       });
 
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png"),
-      );
-      if (!blob) throw new Error("no-blob");
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`share-card: ${response.status}`);
+      const blob = await response.blob();
 
       const file = new File([blob], `memorder-${seed}.png`, {
         type: "image/png",
@@ -62,12 +60,12 @@ export default function ShareRunButton({
         return;
       }
 
-      const url = URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
+      link.href = objectUrl;
       link.download = file.name;
       link.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
       setStatus("downloaded");
     } catch (err) {
       // El usuario cerró el share sheet sin elegir nada: no es un error.
@@ -101,6 +99,11 @@ export default function ShareRunButton({
       {status === "downloaded" && (
         <p className="font-sans text-cream/60 max-w-[220px] text-center text-[10px] leading-snug">
           {t("play.gameoverShareFallbackHint")}
+        </p>
+      )}
+      {status === "error" && (
+        <p className="font-sans text-chip-red/80 max-w-[220px] text-center text-[10px] leading-snug">
+          {t("play.gameoverShareError")}
         </p>
       )}
     </div>

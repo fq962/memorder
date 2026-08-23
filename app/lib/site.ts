@@ -65,7 +65,10 @@ export const CREATORS = [
 
 export const REPO_URL = "https://github.com/fq962/memorder";
 
-/** Colores de marca reusados por el manifest, el theme-color y las OG. */
+/**
+ * Colores de marca reusados por el manifest, el theme-color y las imágenes
+ * generadas. Son los del tema "original" de globals.css.
+ */
 export const BRAND = {
   felt: "#0e1a24",
   feltDeep: "#070d13",
@@ -76,6 +79,8 @@ export const BRAND = {
   green: "#3ddc84",
   purple: "#b06bff",
   pink: "#ff5fc8",
+  cardFace: "#fbf3dd",
+  cardInk: "#1a1030",
 } as const;
 
 /** Helper para armar URLs absolutas (og:url, canonical, sitemap…). */
